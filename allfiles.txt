@@ -1,0 +1,127 @@
+./.env.example
+./.gitignore
+./allfiles.txt
+./assets/.aistudio/.gitignore
+./dist/assets/Aksonometri-DPqUjrzA.jpg
+./dist/assets/Alex-DqyCEKi-.jpg
+./dist/assets/Anja-CTj2UNRt.jpg
+./dist/assets/Bolig2-CiZdpp0a.png
+./dist/assets/Byggar-5xxEwEbR.png
+./dist/assets/Dagperspektiv-C5ZDveqV.jpg
+./dist/assets/Deimante-BKh6rgRR.jpg
+./dist/assets/Detalj balkong-DjB41tss.jpg
+./dist/assets/Esra-Bi4ZX3yd.jpg
+./dist/assets/Fasade oppdatert-CqMyjHGv.jpg
+./dist/assets/Fasade-konsept-restaurant-justert2-BhWFRlou.jpg
+./dist/assets/Hammer_logo_sort_F41-CfGh9e-f.png
+./dist/assets/Hanna-Djq4Y6UI.jpg
+./dist/assets/Herman-nexLn5Au.jpg
+./dist/assets/Holmenveien 9 illustrasjon 1 uten logo-DGMWLGmq.jpg
+./dist/assets/Håkon-BSUOsHJV.jpg
+./dist/assets/Illustrasjon (dag)-Dji5riuM.jpg
+./dist/assets/Illustrasjon (natt1)-yFKZlRjF.jpg
+./dist/assets/Interior - 1. etasje utkast 3-Bc2u1baA.jpg
+./dist/assets/KJ17 - Interiør kontor-WoYQ-mjk.jpg
+./dist/assets/KJ33Langside-CMMXgiSh.jpg
+./dist/assets/Korridor (bygg.no)-DvkL9HWb.jpg
+./dist/assets/Lysgård (bygg.no)-B4wNOaLQ.jpg
+./dist/assets/Martin-CfUCNKh9.jpg
+./dist/assets/Møterom (bygg.no)-CL_FsWHY.jpg
+./dist/assets/Næring2-BUNsclG7.png
+./dist/assets/Offentlig2-B7gce-YA.png
+./dist/assets/Oppdrag-CR1GKi3e.png
+./dist/assets/Oppriss-DxOAZNGh.jpg
+./dist/assets/Sindre-CRzbjJ5A.jpg
+./dist/assets/Sted-DPRbSzbK.png
+./dist/assets/StorOslo-CNxeDP6o.png
+./dist/assets/Takterrasse - oppgradert - planter1-DnP8jgpt.jpg
+./dist/assets/Tvetenveien_11-Rekkehus-DVvWYf5M.jpg
+./dist/assets/Tvetenveien_11_Eksteriør_Vinkel-03_v2_3destate.no-BTJatrDh.jpg
+./dist/assets/Zlatan-D8axtSXP.jpg
+./dist/assets/index-Cq__kpKp.css
+./dist/assets/index-DVlq3b_K.js
+./dist/assets/kj33-004-justert-CqLmrkHR.jpg
+./dist/assets/kj33-008--luf4TWE.jpg
+./dist/assets/kj33-009-D_I5LXYJ.jpg
+./dist/assets/overlys (bygg.no)-BcnsF1Qn.jpg
+./dist/assets/takterrasse (bygg.no)-CCb8_JpL.jpg
+./dist/index.html
+./download.js
+./find.cjs
+./index.html
+./metadata.json
+./package-lock.json
+./package.json
+./src/App.tsx
+./src/assets/images/Hammer_logo_sort_F41.png
+./src/assets/images/Henrik Ibsens gate/ibs-0896.jpg
+./src/assets/images/Henrik Ibsens gate/ibs-6249.jpg
+./src/assets/images/Holmenveien 9/Holmenveien 9 illustrasjon 1 uten logo.jpg
+./src/assets/images/Holmenveien 9/Holmenveien 9 illustrasjon 2 uten logo.jpg
+./src/assets/images/Holmenveien 9/L08.jpg
+./src/assets/images/Holmenveien 9/L11.jpg
+./src/assets/images/Holmenveien 9/Takterrasse.jpg
+./src/assets/images/Ikoner/Bolig2.png
+./src/assets/images/Ikoner/Byggar.png
+./src/assets/images/Ikoner/Næring2.png
+./src/assets/images/Ikoner/Offentlig2.png
+./src/assets/images/Ikoner/Oppdrag.png
+./src/assets/images/Ikoner/Sted.png
+./src/assets/images/Karl Johans gate 17/Illustrasjon (dag).jpg
+./src/assets/images/Karl Johans gate 17/Illustrasjon (natt1).jpg
+./src/assets/images/Karl Johans gate 17/KJ17 - Interiør kontor.jpg
+./src/assets/images/Karl Johans gate 45/Fasade-konsept-restaurant-justert2.jpg
+./src/assets/images/Karl Johans gate 45/Takterrasse - oppgradert - planter1.jpg
+./src/assets/images/Ovre/Interior - 1. etasje utkast 3.jpg
+./src/assets/images/Ovre/Ovre Smestadvei 1 - Utvendig illustrasjon.jpg
+./src/assets/images/Ovre/Ovre Smestadvei 1 Illustrasjon 2.jpg
+./src/assets/images/Portretter/Alex.jpg
+./src/assets/images/Portretter/Anja.jpg
+./src/assets/images/Portretter/Deimante.jpg
+./src/assets/images/Portretter/Esra.jpg
+./src/assets/images/Portretter/Hanna.jpg
+./src/assets/images/Portretter/Herman.jpg
+./src/assets/images/Portretter/Håkon.jpg
+./src/assets/images/Portretter/Martin.jpg
+./src/assets/images/Portretter/Sindre.jpg
+./src/assets/images/Portretter/Zlatan.jpg
+./src/assets/images/Prosjekter/Karl Johans gate 33/KJ33Langside.jpg
+./src/assets/images/Prosjekter/Karl Johans gate 33/kj33-004-justert.jpg
+./src/assets/images/Prosjekter/Karl Johans gate 33/kj33-008.jpg
+./src/assets/images/Prosjekter/Karl Johans gate 33/kj33-009.jpg
+./src/assets/images/Prosjekter/Kongens gate 12/Fasade oppdatert.jpg
+./src/assets/images/Prosjekter/Kongens gate 12/Generated Image June 22, 2026 - 1_00PM.jpg
+./src/assets/images/Prosjekter/Kongens gate 12/Korridor (bygg.no).jpg
+./src/assets/images/Prosjekter/Kongens gate 12/Lysgård (bygg.no).jpg
+./src/assets/images/Prosjekter/Kongens gate 12/Møterom (bygg.no).jpg
+./src/assets/images/Prosjekter/Kongens gate 12/overlys (bygg.no).jpg
+./src/assets/images/Prosjekter/Kongens gate 12/takterrasse (bygg.no).jpg
+./src/assets/images/Refstadveien 50/Dagperspektiv.jpg
+./src/assets/images/Refstadveien 50/Detalj balkong.jpg
+./src/assets/images/Refstadveien 50/Nattperspektiv.jpg
+./src/assets/images/Refstadveien 50/Takperspektiv.jpg
+./src/assets/images/Rosenlundgata 9/Bakgard-fabrikk.jpg
+./src/assets/images/StorOslo.png
+./src/assets/images/Tvetenveien 11/Aksonometri.jpg
+./src/assets/images/Tvetenveien 11/Oppriss.jpg
+./src/assets/images/Tvetenveien 11/Tvetenveien_11-Rekkehus.jpg
+./src/assets/images/Tvetenveien 11/Tvetenveien_11_Eksterior_Vinkel-01_v2_3destate.no.jpg
+./src/assets/images/Tvetenveien 11/Tvetenveien_11_Eksteriør_Vinkel-03_v2_3destate.no.jpg
+./src/assets/images/hammer_arkitekter_logo_1781079090654.png
+./src/assets/images/hammer_logo_1781077631896.png
+./src/components/Ansatte.tsx
+./src/components/CustomCursor.tsx
+./src/components/Footer.tsx
+./src/components/Header.tsx
+./src/components/Kontakt.tsx
+./src/components/OmOss.tsx
+./src/components/Portfolio.tsx
+./src/components/ProjectDrawer.tsx
+./src/components/ThreeCanvas.tsx
+./src/data/projects.ts
+./src/index.css
+./src/main.tsx
+./src/vite-env.d.ts
+./tsconfig.json
+./untitled.tsx
+./vite.config.ts

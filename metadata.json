@@ -1,0 +1,6 @@
+{
+  "name": "Hammer Arkitekter",
+  "description": "Interactive landing page for Hammer Arkitekter, featuring a scroll-driven architectural identity disintegration and interactive portfolio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

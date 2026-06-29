@@ -22,7 +22,9 @@
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "sanity": "^6.2.0",
     "sharp": "^0.35.2",
+    "styled-components": "^6.4.3",
     "three": "^0.184.0"
   },
   "devDependencies": {

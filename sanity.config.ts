@@ -6,8 +6,9 @@ export default defineConfig({
   name: 'default',
   title: 'Hammer Arkitekter Portfolio Manager',
 
-  projectId: process.env.SANITY_PROJECT_ID || 'your_project_id',
-  dataset: process.env.SANITY_DATASET || 'production',
+  projectId: 'f8umz675',
+  dataset: 'production',
+  basePath: '/studio',
 
   plugins: [structureTool()],
 

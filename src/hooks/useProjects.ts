@@ -31,8 +31,8 @@ export function useProjects() {
           category: doc.category || "Bolig",
           description: doc.description || "",
           image: doc.imageUrl || "", // Fallback to empty string if no main image
-          lat: doc.lat,
-          lng: doc.lng,
+          lat: Number(doc.lat),
+          lng: Number(doc.lng),
         }));
 
         setAllProjects([...staticProjects, ...mappedProjects]);

@@ -12,8 +12,10 @@ import { CustomCursor } from "./components/CustomCursor";
 import { Project } from "./data/projects";
 import { ChevronDown, ChevronUp, MapPin, Phone, Mail, Instagram } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useProjects } from "./hooks/useProjects";
 
 export default function App() {
+  const { projects, isLoading } = useProjects();
   const [activePage, setActivePage] = useState<PageId>("hjem");
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
@@ -472,6 +474,7 @@ export default function App() {
                 {/* Sticky WebGL viewport */}
                 <div className="sticky top-0 left-0 w-full h-screen overflow-hidden z-20 bg-white">
                   <ThreeCanvas 
+                    projects={projects}
                     scrollProgress={scrollProgress} 
                     onProjectClick={setActiveProject} 
                     activeProject={activeProject} 
@@ -494,6 +497,7 @@ export default function App() {
               className="w-full bg-[#fffbf0]"
             >
               <Portfolio 
+                projects={projects}
                 onSelectProject={setActiveProject} 
                 selectedProject={activeProject} 
               />

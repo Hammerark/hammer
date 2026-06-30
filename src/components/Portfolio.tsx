@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Project, projects } from "../data/projects";
+import { Project } from "../data/projects";
 import { ArrowRight } from "lucide-react";
 import hammerLogo from "../assets/images/Hammer_logo_sort_F41.png";
 import { motion } from "motion/react";
@@ -17,13 +17,12 @@ const getFilterMatch = (proj: Project, filter: string) => {
 };
 
 interface PortfolioProps {
+  projects: Project[];
   onSelectProject: (project: Project) => void;
-  selectedProject?: Project | null;
+  selectedProject: Project | null;
 }
 
-export const Portfolio: React.FC<PortfolioProps> = ({
-  onSelectProject,
-}) => {
+export const Portfolio: React.FC<PortfolioProps> = ({ projects, onSelectProject, selectedProject }) => {
   const [activeFilter, setActiveFilter] = useState("ALLE");
   const [showAll, setShowAll] = useState(false);
 

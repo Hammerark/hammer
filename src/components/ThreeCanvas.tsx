@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { motion, AnimatePresence } from "motion/react";
 import { RotateCcw, Lock, Unlock, Copy, Check, ArrowRight, Smartphone } from "lucide-react";
-import { Project, projects } from "../data/projects";
+import { Project } from "../data/projects";
 import osloNolliMap from "../assets/images/StorOslo.png";
 import boligIcon from "../assets/images/Ikoner/Bolig2.png";
 import offentligIcon from "../assets/images/Ikoner/Offentlig2.png";
@@ -75,6 +75,7 @@ export const getMapPosFromLatLng = (lat: number, lng: number) => {
 };
 
 interface ThreeCanvasProps {
+  projects: Project[];
   scrollProgress: number; // 0.0 to 1.0 representing the story scroll position
   onProjectClick: (project: Project) => void;
   activeProject: Project | null;
@@ -83,6 +84,7 @@ interface ThreeCanvasProps {
 }
 
 export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
+  projects,
   scrollProgress,
   onProjectClick,
   activeProject,
@@ -265,6 +267,20 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     });
     return initialCoords;
   });
+
+  useEffect(() => {
+    setCoordsState(prev => {
+      const next = { ...prev };
+      let changed = false;
+      projects.forEach(p => {
+        if (!next[p.id]) {
+          next[p.id] = projectLatLngToMapPercent(p.lat, p.lng);
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [projects]);
   const [draggedPinId, setDraggedPinId] = useState<string | null>(null);
   const [isDragModeEnabled, setIsDragModeEnabled] = useState(false);
   const [isCopied, setIsCopied] = useState(false);

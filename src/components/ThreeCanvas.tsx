@@ -1611,7 +1611,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             </div>
             
             {/* Project Markers rendered above the image */}
-            {projects.map((proj) => {
+            {projects.filter(proj => typeof proj.lat === 'number' && !isNaN(proj.lat) && typeof proj.lng === 'number' && !isNaN(proj.lng)).map((proj) => {
               const coord = coordsState[proj.id];
               const isSelectedDesk = activeProject?.id === proj.id;
               const isSelectedMob = selectedMobileProject?.id === proj.id;
@@ -1856,7 +1856,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
       {/* Elegant Architectural HTML overlays (hidden to avoid duplication during map phase) */}
       <div className="absolute inset-0 pointer-events-none z-10 invisible">
-        {projects.map((proj, idx) => (
+        {projects.filter(proj => typeof proj.lat === 'number' && !isNaN(proj.lat) && typeof proj.lng === 'number' && !isNaN(proj.lng)).map((proj, idx) => (
           <div
             key={proj.id}
             ref={(el) => {

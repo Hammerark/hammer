@@ -117,19 +117,16 @@ export default defineType({
       },
     }),
     defineField({
-      name: 'mapPos',
-      title: 'Kartposisjon (3D koordinater)',
-      type: 'object',
-      fields: [
-        { name: 'x', type: 'number', title: 'X-koordinat' },
-        { name: 'y', type: 'number', title: 'Y-koordinat' },
-        { name: 'z', type: 'number', title: 'Z-koordinat' },
-      ],
-      initialValue: {
-        x: 0,
-        y: 0,
-        z: 0,
-      },
+      name: 'lat',
+      title: 'Breddegrad (Latitude)',
+      type: 'number',
+      initialValue: 59.9139,
+    }),
+    defineField({
+      name: 'lng',
+      title: 'Lengdegrad (Longitude)',
+      type: 'number',
+      initialValue: 10.7522,
     }),
     defineField({
       name: 'teamMembers',

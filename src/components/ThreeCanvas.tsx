@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { motion, AnimatePresence } from "motion/react";
 import { RotateCcw, Lock, Unlock, Copy, Check, ArrowRight, Smartphone } from "lucide-react";
-import { Project, projects, projectPercentCoords } from "../data/projects";
+import { Project, projects } from "../data/projects";
 import osloNolliMap from "../assets/images/StorOslo.png";
 import boligIcon from "../assets/images/Ikoner/Bolig2.png";
 import offentligIcon from "../assets/images/Ikoner/Offentlig2.png";
@@ -42,6 +42,37 @@ const getProjectRotation = (id: string): number => {
   return 0; // Every marker is 0 degrees
 };
 
+export const projectLatLngToMapPercent = (lat: number, lng: number): { xPercent: number; yPercent: number } => {
+  const t1x = 24.0, t1y = 50.0;
+  const t2x = 30.3, t2y = 37.6;
+  const t3x = 52.9, t3y = 46.8;
+  const s1lat = 59.911, s1lng = 10.635;
+  const s2lat = 59.932, s2lng = 10.655;
+  const s3lat = 59.917, s3lng = 10.740;
+  
+  const det = (s2lat - s3lat) * (s1lng - s3lng) + (s3lng - s2lng) * (s1lat - s3lat);
+  if (Math.abs(det) < 0.000001) return { xPercent: 50, yPercent: 50 };
+
+  const l1 = ((s2lat - s3lat) * (lng - s3lng) + (s3lng - s2lng) * (lat - s3lat)) / det;
+  const l2 = ((s3lat - s1lat) * (lng - s3lng) + (s1lng - s3lng) * (lat - s3lat)) / det;
+  const l3 = 1 - l1 - l2;
+  
+  return {
+    xPercent: l1 * t1x + l2 * t2x + l3 * t3x,
+    yPercent: l1 * t1y + l2 * t2y + l3 * t3y,
+  };
+};
+
+export const getMapPosFromLatLng = (lat: number, lng: number) => {
+  const { xPercent, yPercent } = projectLatLngToMapPercent(lat, lng);
+  const mapWidth = 40;
+  const mapHeight = 30;
+  return {
+    x: -mapWidth / 2 + (xPercent / 100) * mapWidth,
+    y: -5.75,
+    z: -mapHeight / 2 + (yPercent / 100) * mapHeight
+  };
+};
 
 interface ThreeCanvasProps {
   scrollProgress: number; // 0.0 to 1.0 representing the story scroll position
@@ -228,7 +259,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
   // States for manual coordinate placement modifications
   const [coordsState, setCoordsState] = useState<Record<string, { xPercent: number; yPercent: number }>>(() => {
-    return projectPercentCoords;
+    const initialCoords: Record<string, { xPercent: number; yPercent: number }> = {};
+    projects.forEach(p => {
+      initialCoords[p.id] = projectLatLngToMapPercent(p.lat, p.lng);
+    });
+    return initialCoords;
   });
   const [draggedPinId, setDraggedPinId] = useState<string | null>(null);
   const [isDragModeEnabled, setIsDragModeEnabled] = useState(false);
@@ -1134,9 +1169,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             const tSpring = getSpringWeight(t);
             
             // Target coordinates mapped to local rig space coordinates
-            const targetX = (proj.mapPos.x * MAP_SCALE) / currentRigScale;
-            const targetY = proj.mapPos.y / currentRigScale;
-            const targetZ = (proj.mapPos.z * MAP_SCALE) / currentRigScale;
+            const mapPos = getMapPosFromLatLng(proj.lat, proj.lng);
+            const targetX = (mapPos.x * MAP_SCALE) / currentRigScale;
+            const targetY = mapPos.y / currentRigScale;
+            const targetZ = (mapPos.z * MAP_SCALE) / currentRigScale;
 
             // Transition gracefully from the physical gravitational path to the exact target coordinate
             x = THREE.MathUtils.lerp(physX, targetX, tSpring);
@@ -1250,10 +1286,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           }
 
           // Compute exact position in world coordinates (taking the rig's rotation and scale into account)
+          const mapPos = getMapPosFromLatLng(proj.lat, proj.lng);
           const targetVec = new THREE.Vector3(
-            (proj.mapPos.x * MAP_SCALE) / currentRigScale,
-            proj.mapPos.y / currentRigScale,
-            (proj.mapPos.z * MAP_SCALE) / currentRigScale
+            (mapPos.x * MAP_SCALE) / currentRigScale,
+            mapPos.y / currentRigScale,
+            (mapPos.z * MAP_SCALE) / currentRigScale
           );
           if (rig) {
             targetVec.applyMatrix4(rig.matrixWorld);
@@ -1351,58 +1388,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     };
   }, [points]);
-type PercentPoint = {
-  xPercent: number;
-  yPercent: number;
-};
-
-const calibratePoint = (
-  point: PercentPoint,
-  source: [PercentPoint, PercentPoint, PercentPoint],
-  target: [PercentPoint, PercentPoint, PercentPoint]
-): PercentPoint => {
-  const [s1, s2, s3] = source;
-  const [t1, t2, t3] = target;
-
-  const det =
-    (s2.yPercent - s3.yPercent) * (s1.xPercent - s3.xPercent) +
-    (s3.xPercent - s2.xPercent) * (s1.yPercent - s3.yPercent);
-
-  const l1 =
-    ((s2.yPercent - s3.yPercent) * (point.xPercent - s3.xPercent) +
-      (s3.xPercent - s2.xPercent) * (point.yPercent - s3.yPercent)) /
-    det;
-
-  const l2 =
-    ((s3.yPercent - s1.yPercent) * (point.xPercent - s3.xPercent) +
-      (s1.xPercent - s3.xPercent) * (point.yPercent - s3.yPercent)) /
-    det;
-
-  const l3 = 1 - l1 - l2;
-
-  return {
-    xPercent:
-      l1 * t1.xPercent +
-      l2 * t2.xPercent +
-      l3 * t3.xPercent,
-
-    yPercent:
-      l1 * t1.yPercent +
-      l2 * t2.yPercent +
-      l3 * t3.yPercent,
-  };
-};
-const calibrationSource: [PercentPoint, PercentPoint, PercentPoint] = [
-  projectPercentCoords["storengveien-65"] || { xPercent: 23.9, yPercent: 48.9 },      // Storengveien 65
-  projectPercentCoords["kvernveien-9A"] || { xPercent: 30.6, yPercent: 39.7 },          // Kvernveien 9A
-  projectPercentCoords["pilestredet-7"] || { xPercent: 52.7, yPercent: 43.0 },      // Pilestredet 7
-];
-
-const calibrationTarget: [PercentPoint, PercentPoint, PercentPoint] = [
-  { xPercent: 23.5, yPercent: 50.3 }, // Storengveien 65A
-  { xPercent: 84.4, yPercent: 29.9 }, // Lønneveien 2
-  { xPercent: 66.0, yPercent: 78.6 }, // Prinsdalsfaret 3
-];
 
   const mapFilters = [
     { id: "ALLE", label: "Alle", icon: null },

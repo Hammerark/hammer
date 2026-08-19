@@ -108,7 +108,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   // Keep track of scroll progress dynamically to avoid reconstructing entire ThreeJS components on scroll
   const scrollRef = useRef(scrollProgress);
 
-  const getBaseZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 3.15 : 2.5;
+  const getBaseZoom = () => 1.0;
+  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 3.15 : 2.5;
   const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 18.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
@@ -270,10 +271,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   // Reset zoom and pan if we transition away from the map view
   useEffect(() => {
     scrollRef.current = scrollProgress;
-    if (scrollProgress < 0.60) {
+    if (scrollProgress < 0.80) {
       setZoom(getBaseZoom());
       setPan({ x: 0, y: 0 });
       setIsMapInteracting(false);
+    } else if (scrollProgress >= 0.85 && !isMapInteractingRef.current) {
+      setZoom(getTargetZoom());
     }
   }, [scrollProgress]);
 
@@ -446,8 +449,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     e.stopPropagation();
     setIsMapInteracting(true);
 
-    if (zoom > getBaseZoom() + 0.1) {
-      setZoom(getBaseZoom());
+    if (zoom > getTargetZoom() + 0.1) {
+      setZoom(getTargetZoom());
       setPan({ x: 0, y: 0 });
       setIsMapInteracting(false); // Zooming out completely releases interaction
     } else {
@@ -455,7 +458,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const x = e.clientX - rect.left - rect.width / 2;
       const y = e.clientY - rect.top - rect.height / 2;
       
-      const targetZoom = 2.5;
+      const targetZoom = Math.max(getTargetZoom() * 1.5, 4.0);
       setZoom(targetZoom);
       setPan({
         x: -x * (targetZoom - 1),
@@ -1762,18 +1765,18 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               onClick={(e) => {
                 triggerHaptic();
                 e.stopPropagation();
-                setZoom(getBaseZoom());
+                setZoom(getTargetZoom());
                 setPan({ x: 0, y: 0 });
                 setIsMapInteracting(false);
               }}
               className={`w-10 h-10 border rounded-none flex items-center justify-center transition-all shadow-sm ${
-                zoom > getBaseZoom() + 0.05 || pan.x !== 0 || pan.y !== 0
+                Math.abs(zoom - getTargetZoom()) > 0.05 || pan.x !== 0 || pan.y !== 0
                   ? "bg-neutral-900 border-neutral-900 text-white cursor-pointer hover:bg-neutral-800"
                   : "bg-[#fffbf0]/80 border-neutral-200 text-neutral-400 opacity-50 cursor-default"
               }`}
               title="Nullstill zoom og pan"
               aria-label="Nullstill zoom og pan"
-              disabled={zoom <= getBaseZoom() + 0.05 && pan.x === 0 && pan.y === 0}
+              disabled={Math.abs(zoom - getTargetZoom()) <= 0.05 && pan.x === 0 && pan.y === 0}
             >
               <RotateCcw className="w-4 h-4" />
             </button>

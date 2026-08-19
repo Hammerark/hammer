@@ -76,11 +76,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ projects, onSelectProject,
                   return (
                     <div 
                       key={`${project.id}-${itemIdx}`} 
-                      className={`flex flex-col group cursor-pointer w-full ${is40 ? "md:w-2/5" : "md:w-3/5"}`}
-                      onClick={() => {
-                        triggerHaptic();
-                        onSelectProject(project);
-                      }}
+                      className={`flex flex-col group w-full ${is40 ? "md:w-2/5" : "md:w-3/5"}`}
                     >
                       <div className={`w-full aspect-[4/3] ${is40 ? "md:aspect-[4/3]" : "md:aspect-[2/1]"} overflow-hidden mb-4 bg-white`}>
                         {project.image ? (
@@ -99,9 +95,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ projects, onSelectProject,
                         <span className="text-sm md:text-base font-light tracking-wide group-hover:underline underline-offset-4">
                           {project.name}
                         </span>
-                        <span className="text-sm font-light tracking-wide flex items-center gap-1 group-hover:underline underline-offset-4 transition-all">
-                          Les mer <ArrowRight className="w-4 h-4 ml-1" />
-                        </span>
+                        <span></span>
                       </div>
                     </div>
                   );

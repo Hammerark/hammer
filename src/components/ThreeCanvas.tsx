@@ -43,12 +43,12 @@ const getProjectRotation = (id: string): number => {
 };
 
 export const projectLatLngToMapPercent = (lat: number, lng: number): { xPercent: number; yPercent: number } => {
-  const t1x = 24.0, t1y = 50.0;
-  const t2x = 30.3, t2y = 37.6;
-  const t3x = 52.9, t3y = 46.8;
-  const s1lat = 59.911, s1lng = 10.635;
-  const s2lat = 59.932, s2lng = 10.655;
-  const s3lat = 59.917, s3lng = 10.740;
+  const t1x = 57.0, t1y = 45.1;
+  const t2x = 49.1, t2y = 50.7;
+  const t3x = 67.1, t3y = 30.2;
+  const s1lat = 59.91746156, s1lng = 10.76030439;
+  const s2lat = 59.90894970, s2lng = 10.72240599;
+  const s3lat = 59.94183791, s3lng = 10.80861593;
   
   const det = (s2lat - s3lat) * (s1lng - s3lng) + (s3lng - s2lng) * (s1lat - s3lat);
   if (Math.abs(det) < 0.000001) return { xPercent: 50, yPercent: 50 };
@@ -108,7 +108,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   // Keep track of scroll progress dynamically to avoid reconstructing entire ThreeJS components on scroll
   const scrollRef = useRef(scrollProgress);
 
-  const getBaseZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 3.15 : 1.0;
+  const getBaseZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 3.15 : 2.5;
   const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 18.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
@@ -194,37 +194,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         return;
       }
 
-      // If we've reached the very end of the scroll track (map fully settled)
-      if (scrollRef.current >= 0.99) {
-        if (e.deltaY > 0) {
-          // Scrolling down: zoom in
-          e.preventDefault();
-          setZoom(z => {
-            // Slower zooming at the start (z near 1.0)
-            const speed = z < 1.3 ? 0.0015 : 0.0035;
-            const newZ = Math.min(getMaxZoom(), z + (e.deltaY * speed));
-            if (newZ > getBaseZoom() + 0.05) setIsMapInteracting(true);
-            return newZ;
-          });
-        } else if (e.deltaY < 0) {
-          // Scrolling up: zoom out, ONLY if we are zoomed in.
-          // Otherwise, we let native browser scroll take over.
-          if (zoomRef.current > getBaseZoom() + 0.001) {
-            e.preventDefault();
-            setZoom(z => {
-              const speed = z < 1.3 ? 0.0015 : 0.0035;
-              const newZ = Math.max(getBaseZoom(), z + (e.deltaY * speed));
-              // Center the map securely when completely unzoomed
-              if (newZ <= getBaseZoom() + 0.05) {
-                setPan({ x: 0, y: 0 });
-                setIsMapInteracting(false);
-                return getBaseZoom();
-              }
-              return newZ;
-            });
-          }
-        }
-      }
+
     };
     
     // Non-passive listener allows us to block native scrolling
@@ -1658,38 +1628,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                       aria-label={`Prosjekt: ${proj.name}, ${proj.location}`}
                       aria-expanded={isActive}
                       onClick={(e) => {
-                        triggerHaptic();
                         if (isDragModeEnabled) {
                           e.stopPropagation();
                           return; // Ignore clicking on markers if we are in manual positioning mode
                         }
-                        if (isMoved) {
-                          e.stopPropagation();
-                          return; // Ignore clicking on markers if we were dragging/panning
-                        }
                         e.stopPropagation(); // Prevent logging background coordinates when clicking visual pins
-                        
-                        if (isMobileSize) {
-                          if (selectedMobileProject?.id === proj.id) {
-                            setSelectedMobileProject(null);
-                          } else {
-                            setSelectedMobileProject(proj);
-                            const nextZoom = zoom; // Do not zoom out automatically
-                            setZoom(nextZoom);
-                            const mapWidth = window.innerWidth * 0.9;
-                            const mapHeight = mapWidth / (2048 / 1270);
-                            const relX = ((coord.xPercent - 50) / 100) * mapWidth;
-                            const relY = ((coord.yPercent - 50) / 100) * mapHeight;
-                            // Offset Y slightly since the bottom sheet covers ~30% of the screen
-                            const yOffset = window.innerHeight * 0.15;
-                            setPan({
-                              x: -relX * nextZoom,
-                              y: -relY * nextZoom - yOffset
-                            }, nextZoom);
-                          }
-                        } else {
-                          onProjectClick(proj);
-                        }
                       }}
                       onMouseDown={(e) => {
                         if (isDragModeEnabled) {
@@ -1707,7 +1650,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                       className={`group absolute focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:rounded-full ${scrollProgress < 0.65 ? "pointer-events-none" : "pointer-events-auto"} flex items-center justify-center ${
                         isDragModeEnabled 
                           ? "cursor-grab active:cursor-grabbing" 
-                          : "cursor-pointer"
+                          : "cursor-default"
                       } ${isMobile ? "w-[24px] h-[24px] -left-[12px] -top-[12px]" : "w-[16px] h-[16px] -left-[8px] -top-[8px]"}`}
                     >
                       <div 
@@ -1742,22 +1685,22 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                               transformOrigin: "bottom center",
                               marginBottom: `${12 / (Math.pow(zoom, 0.5) * (0.4 * zoom + 0.6))}px`
                             }}
-                            className="hidden md:flex flex-col w-36 absolute bottom-full left-1/2 pointer-events-none z-50"
+                            className="hidden md:flex flex-col w-48 absolute bottom-full left-1/2 pointer-events-none z-50"
                           >
                             <div className={`relative w-full font-sans tracking-widest text-neutral-900 overflow-visible origin-bottom
                             opacity-0 group-hover:opacity-100
                             ${isActive ? '!opacity-100' : ''}
                           `}>
                             <div className="flex flex-col w-full bg-white rounded-none overflow-hidden shadow-lg border border-neutral-100">
-                              <div className="w-full h-24 relative bg-neutral-100">
+                              <div className="w-full h-32 relative bg-neutral-100">
                                 {proj.image ? (
                                   <img src={proj.image} alt={proj.name} className="w-full h-full object-cover" />
                                 ) : (
                                    <div className="w-full h-full flex items-center justify-center text-neutral-400 text-[10px] bg-white">Bilde kommer</div>
                                 )}
                               </div>
-                              <div className="px-2 py-1.5 bg-white relative z-10 text-center">
-                                <div className="font-medium uppercase tracking-[0.1em] text-[8px] truncate">{proj.name}</div>
+                              <div className="px-2 py-2 bg-white relative z-10 text-center">
+                                <div className="font-medium uppercase tracking-[0.1em] text-[10px] truncate">{proj.name}</div>
                               </div>
                             </div>
                             {/* Triangle pointer */}

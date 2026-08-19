@@ -123,24 +123,8 @@ export const Header: React.FC<HeaderProps> = ({ activePage, onPageChange, scroll
         onMouseEnter={() => setIsHeaderHovered(true)}
         onMouseLeave={() => setIsHeaderHovered(false)}
       >
-        {/* Logo */}
-        <button
-          onClick={() => {
-            triggerHaptic();
-            onPageChange("hjem");
-          }}
-          className="flex items-center gap-3 cursor-pointer text-neutral-900 group focus:outline-none relative z-50 transition-transform duration-300 hover:scale-105 pointer-events-auto"
-        >
-          <span className="inline-flex items-center select-none" id="header-logo-container">
-            <img
-              src={hammerLogo}
-              alt="HAMMER"
-              className={`h-4 md:h-5 w-auto object-contain transition-all duration-300 ${(isMobile && isHovered) ? "invert" : ""}`}
-              referrerPolicy="no-referrer"
-              id="header-logo-image"
-            />
-          </span>
-        </button>
+        {/* Logo Placeholder */}
+        <div className="w-10"></div>
 
         {/* Menu Container */}
         <div 

@@ -8,7 +8,7 @@ import { Kontakt } from "./components/Kontakt";
 import { triggerHaptic } from "./utils";
 import { ProjectDrawer } from "./components/ProjectDrawer";
 import { Footer } from "./components/Footer";
-import { CustomCursor } from "./components/CustomCursor";
+
 import { Project } from "./data/projects";
 import { ChevronDown, ChevronUp, MapPin, Phone, Mail, Instagram } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -148,30 +148,7 @@ export default function App() {
         }
       }
 
-      if (scrollProgress >= 0.99) {
-        // Prevent scrolling down, effectively locking the window
-        if (e.type === "wheel") {
-          const wheelEvent = e as WheelEvent;
-          if (wheelEvent.deltaY > 0) {
-            e.preventDefault();
-          }
-        } else if (e.type === "touchmove") {
-          const touchEvent = e as TouchEvent;
-          const touchY = touchEvent.touches[0].clientY;
-          // Swipe up = scrolling down
-          if (touchStartY - touchY > 0) {
-            // Check if touch is on an element that needs scroll (e.g. within a small div)
-            // For now, prevent default for the whole window.
-            e.preventDefault();
-          }
-        } else if (e.type === "keydown") {
-          const keyboardEvent = e as KeyboardEvent;
-          // Space, PageDown, ArrowDown
-          if (["ArrowDown", "PageDown", " ", "End"].includes(keyboardEvent.key)) {
-            e.preventDefault();
-          }
-        }
-      }
+
     };
 
     window.addEventListener("wheel", handlePreventScroll, { passive: false });
@@ -337,7 +314,7 @@ export default function App() {
 
   return (
     <div className={`relative min-h-screen font-sans text-neutral-900 selection:bg-neutral-900 selection:text-white flex flex-col justify-between ${["om-oss", "prosjekter"].includes(activePage) ? "bg-[#fffbf0]" : ["ansatte", "kontakt"].includes(activePage) ? "bg-[#e6ffde]" : "bg-white"}`}>
-      <CustomCursor />
+
       
       {/* Page Transition Loading Animation */}
       <AnimatePresence>

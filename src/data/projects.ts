@@ -115,8 +115,8 @@ export const projects: Project[] = [
     description: "A contemporary wooden kindergarten featuring organic architectural volumes and playful daylight distribution. Designed to integrate respectably into an historical park environment in the heart of Fagerborg.",
     image: holmenveien_9_1,
     images: [holmenveien_9_1],
-    lat: 59.94508,
-    lng: 10.70291
+    lat: 59.94586,
+    lng: 10.69702
   },
   {
     id: "kvernveien-9A",
@@ -137,8 +137,8 @@ export const projects: Project[] = [
     category: "Enebolig (Residential)",
     description: "Positioned on the precipitous hillside of Holmenkollen, this villa uses staggered concrete cantilevers to carve out private, wind-sheltered outdoor living zones while capturing panoramic views over the Oslofjord.",
     image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.917,
-    lng: 10.74
+    lat: 59.91515,
+    lng: 10.74061
   },
   {
     id: "ovre-smestadvei-1",
@@ -150,8 +150,8 @@ export const projects: Project[] = [
     image: ovre_smestadvei_1_1,
     images: [ovre_smestadvei_1_1, ovre_smestadvei_1_2, ovre_smestadvei_1_4],
     imageLayouts: ["full", "half", "half"],
-    lat: 59.94327,
-    lng: 10.68192
+    lat: 59.94503,
+    lng: 10.66914
   },
   {
     id: "tvetenveien-11",
@@ -163,8 +163,8 @@ export const projects: Project[] = [
     image: tvetenveien_11_1,
     images: [tvetenveien_11_1, tvetenveien_11_2, tvetenveien_11_3, tvetenveien_11_4, tvetenveien_11_5],
     imageLayouts: ["full", "half", "full", "half", "half"],
-    lat: 59.919,
-    lng: 10.79356
+    lat: 59.91456,
+    lng: 10.8113
   },
   {
     id: "karl-johans-gate-17",
@@ -176,8 +176,8 @@ export const projects: Project[] = [
     image: kj17Dag,
     images: [kj17Dag, kj17Natt, kj17Interior],
     imageLayouts: ["full", "half", "half"],
-    lat: 59.91483,
-    lng: 10.74252
+    lat: 59.91279,
+    lng: 10.74352
   },
   {
     id: "karl-johans-gate-33",
@@ -189,8 +189,8 @@ export const projects: Project[] = [
     image: kj33Main,
     images: [kj33Main, kj33Image004, kj33Image008, kj33Image009],
     imageLayouts: ["full", "full", "half", "half"],
-    lat: 59.91598,
-    lng: 10.73832
+    lat: 59.91418,
+    lng: 10.73822
   },
   {
     id: "karl-johans-gate-45",
@@ -201,8 +201,8 @@ export const projects: Project[] = [
     description: "A sensitive renovation of a historic assembly hall. Custom acoustic oak paneling and modern technical installations are seamlessly integrated beneath plaster ceilings, respecting heritage classification.",
     image: kj45Fasade,
     images: [kj45Fasade, kj45Takterrasse],
-    lat: 59.91664,
-    lng: 10.73675
+    lat: 59.91494,
+    lng: 10.73629
   },
   {
     id: "kongens-gate-12",
@@ -214,8 +214,8 @@ export const projects: Project[] = [
     image: kg12Fasade,
     images: [kg12Fasade, kg12Korridor, kg12Lysgaard, kg12Moteroom, kg12Overlys, kg12Takterrasse],
     imageLayouts: ["full", "half", "half", "full", "half", "half"],
-    lat: 59.91263,
-    lng: 10.74211
+    lat: 59.91055,
+    lng: 10.74259
   },
   {
     id: "refstadveien-50",
@@ -227,8 +227,8 @@ export const projects: Project[] = [
     image: refstadveien_50_1,
     images: [refstadveien_50_1, refstadveien_50_2, refstadveien_50_3, refstadveien_50_4],
     imageLayouts: ["full", "half", "half", "full"],
-    lat: 59.94524,
-    lng: 10.78788
+    lat: 59.94184,
+    lng: 10.80862
   },
   {
     id: "henrik-ibsens-gate-26",
@@ -239,8 +239,8 @@ export const projects: Project[] = [
     description: "A highly polished office showroom boasting smooth, structural aluminum finishes and expansive floor-to-ceiling windows overlooking the Royal Palace grounds, uniting precise modernism with natural greenery.",
     image: ibsens_1,
     images: [ibsens_1, ibsens_2],
-    lat: 59.9171,
-    lng: 10.72899
+    lat: 59.9158,
+    lng: 10.72618
   },
   {
     id: "rosenlundgata-9",
@@ -251,8 +251,8 @@ export const projects: Project[] = [
     description: "An urban tactile brick infill development within Torshov. Balanced masonry coursing and nested steel terraces provide private, cozy living zones referencing traditional harbor-side storehouses.",
     image: rosenlund_1,
     images: [rosenlund_1],
-    lat: 59.93561,
-    lng: 10.75449
+    lat: 59.93358,
+    lng: 10.76302
   },
   // 1. Bygdøy terrasse 25
   {
@@ -263,8 +263,8 @@ export const projects: Project[] = [
     category: "Enebolig (Residential)",
     description: "An elegant, bespoke modern villa situated on the exclusive Bygdøy peninsula. Features raw timber screening, limestone wall detailing, and beautiful floor-to-ceiling frames that interact directly with coastal light.",
     image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.90259,
-    lng: 10.69522
+    lat: 59.90253,
+    lng: 10.6792
   },
   // 2. Christian Krohgs gate 60
   {
@@ -275,8 +275,8 @@ export const projects: Project[] = [
     category: "Næringsbygg (Commercial)",
     description: "A riverside post-industrial office structure in central Oslo, introducing a high-contrast black steel framework and exposed brick grids that pay homage to the area's rich manufacturing heritage.",
     image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.91995,
-    lng: 10.75459
+    lat: 59.91746,
+    lng: 10.7603
   },
   // 3. Ekebergveien 227
   {
@@ -287,8 +287,8 @@ export const projects: Project[] = [
     category: "Enebolig (Residential)",
     description: "Perched majestically high up on the rolling hills of Ekeberg, this custom residence couples clean geometric white plaster panels with deep, warm thermal pine linings for cozy outdoor terraces.",
     image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.86494,
-    lng: 10.7949
+    lat: 59.85889,
+    lng: 10.80323
   },
   // 4. Erling Skjalgssons gate 24
   {
@@ -299,8 +299,8 @@ export const projects: Project[] = [
     category: "Næringsbygg (Mixed Use)",
     description: "A sensitive infill architecture in Frogner. Merges historic decorative moldings on the perimeter facade with modular, contemporary open-plan spaces facing a quiet interior courtyard.",
     image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.9212,
-    lng: 10.70861
+    lat: 59.92101,
+    lng: 10.70016
   },
   // 5. Gøteborggata 38
   {
@@ -311,8 +311,8 @@ export const projects: Project[] = [
     category: "Leilighetsbygg (Multi-family)",
     description: "An urban tactile brick development at Rodeløkka. Features custom patterned reddish-brown masonry work, recessed deep-set private balconies, and beautiful wildflower green roofs that filter rainwater naturally.",
     image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.92958,
-    lng: 10.7605
+    lat: 59.92708,
+    lng: 10.76982
   },
   // 6. Hoffsjef Løvenskiolds vei 47
   {
@@ -325,8 +325,8 @@ export const projects: Project[] = [
     image: hoff47_1,
     images: [hoff47_1, hoff47_2, hoff47_3, hoff47_4],
     imageLayouts: ["full", "half", "half", "full"],
-    lat: 59.93273,
-    lng: 10.66552
+    lat: 59.935,
+    lng: 10.64568
   },
   // 7. Hoffsjef Løvenskiolds vei 49
   {
@@ -339,8 +339,8 @@ export const projects: Project[] = [
     image: hoff49_1,
     images: [hoff49_1, hoff49_2, hoff49_3, hoff49_4],
     imageLayouts: ["full", "half", "half", "full"],
-    lat: 59.93324,
-    lng: 10.66617
+    lat: 59.93549,
+    lng: 10.64664
   },
   // 8. Holtveien 54
   {
@@ -351,8 +351,8 @@ export const projects: Project[] = [
     category: "Leilighetsbygg (Residential)",
     description: "A pristine high-concept wooden apartment block utilizing pre-fabricated massive timber panels for carbon neutrality, offering scenic floor-to-ceiling vistas across the tree line.",
     image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.87549,
-    lng: 10.78492
+    lat: 59.87023,
+    lng: 10.79205
   },
   // 10. Kirkegata 36
   {
@@ -363,8 +363,8 @@ export const projects: Project[] = [
     category: "Bygningstransformasjon (Renovation)",
     description: "A gorgeous modern office workspace nested inside Kvadraturen's classic building lines, featuring a highly technical, self-supporting spatial structure and custom daylight lightwells.",
     image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.91399,
-    lng: 10.7441
+    lat: 59.91185,
+    lng: 10.74546
   },
   // 11. Korsgata 25A
   {
@@ -387,8 +387,8 @@ export const projects: Project[] = [
     category: "Enebolig (Residential)",
     description: "An eco-friendly wooden villa incorporating solar roof integration, water recycling, and vertical pine boards that age with grace into a soft silver color tone over time.",
     image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.94593,
-    lng: 10.84933
+    lat: 59.93953,
+    lng: 10.88942
   },
   // 13. Middelthuns gate 12
   {
@@ -399,8 +399,8 @@ export const projects: Project[] = [
     category: "Næringsbygg (Commercial)",
     description: "A classic stone facade in Majorstuen, redesigned from the inside to feature sweeping open offices, suspended meeting cubes, and acoustic control walls made of organic wool felt.",
     image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.92781,
-    lng: 10.71716
+    lat: 59.9274,
+    lng: 10.7126
   },
   // 14. Parkveien 60
   {
@@ -411,8 +411,8 @@ export const projects: Project[] = [
     category: "Bygningstransformasjon (Renovation)",
     description: "Restoration of a late-classicist mansion near the Royal Palace, providing minimal interior updates, handcrafted solid-oak floorboards, and highly-engineered energy saving fixtures.",
     image: "https://images.unsplash.com/photo-1549693578-d683be217e58?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.91675,
-    lng: 10.72538
+    lat: 59.91561,
+    lng: 10.72137
   },
   // 15. Prestegårdsveien 3
   {
@@ -423,8 +423,8 @@ export const projects: Project[] = [
     category: "Leilighetsbygg (Multi-family)",
     description: "Structured around a quiet, common garden in Blindern. Merges highly tactile sand-colored bricks with light green oxide-coated steel beams for private verandas.",
     image: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.9393,
-    lng: 10.72244
+    lat: 59.93895,
+    lng: 10.72161
   },
   // 16. Prinsdalsfaret 3
   {
@@ -435,8 +435,8 @@ export const projects: Project[] = [
     category: "Atriumhus (Residential)",
     description: "A compact, highly-efficient wooden atrium building built alongside a dense pine glen, boasting high-contrast slate detailing and expansive view corridors.",
     image: "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.83099,
-    lng: 10.80648
+    lat: 59.82339,
+    lng: 10.81226
   },
   // 17. Rathkes gate 9
   {
@@ -447,8 +447,8 @@ export const projects: Project[] = [
     category: "Leilighetsbygg (Multi-family)",
     description: "A minimalist brick facade infill overlooking Sofienberg park. Employs classic Norwegian limestone details, bronze-coated aluminum fixtures, and floor-to-ceiling windows for exceptional daylighting.",
     image: "https://images.unsplash.com/photo-1448630360428-654710d92604?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.92333,
-    lng: 10.75629
+    lat: 59.92085,
+    lng: 10.76315
   },
   // 18. Stortingsgata 4
   {
@@ -459,8 +459,8 @@ export const projects: Project[] = [
     category: "Næringsbygg (Commercial)",
     description: "A majestic modern retail interior with double-height marble entry portal and curved structural bronze details that redefine luxury department retail right in Oslo's historic core.",
     image: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.91497,
-    lng: 10.73847
+    lat: 59.91313,
+    lng: 10.73823
   },
   // 19. Thereses gate 32
   {
@@ -471,8 +471,8 @@ export const projects: Project[] = [
     category: "Boligbygg (Residential)",
     description: "A contemporary residential renewal in Bislett, using beautifully warm terracotta brick blocks that blend perfectly with historical neighborhood architectural lines.",
     image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.93008,
-    lng: 10.73112
+    lat: 59.92905,
+    lng: 10.73133
   },
   // 20. Thorvald Meyers gate 2
   {
@@ -483,8 +483,8 @@ export const projects: Project[] = [
     category: "Bygningstransformasjon (Renovation)",
     description: "Converting a historic industrial warehouse along the Akerselva river into a modern, light-filled creative agency hub, incorporating massive solid oak boards and structural steel grids.",
     image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.92246,
-    lng: 10.75239
+    lat: 59.92016,
+    lng: 10.75787
   },
   // 21. Thorvald Meyers gate 71
   {
@@ -495,8 +495,8 @@ export const projects: Project[] = [
     category: "Næringsbygg (Mixed Use)",
     description: "A state-of-the-art office pavilion built with exposed solid mass-timber structures and carbon-captured concrete, defining a warm and biophilic workspace in Grünerløkka.",
     image: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.93307,
-    lng: 10.75193
+    lat: 59.93109,
+    lng: 10.7592
   },
   // 22. Torshovgata 15
   {
@@ -507,8 +507,8 @@ export const projects: Project[] = [
     category: "Boligbygg (Residential)",
     description: "Deep brick window frames and dark zinc flashings characterize this exceptional urban infill build, adding elegant rhythm and subtle texture to the classic historic street scape.",
     image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.93613,
-    lng: 10.75624
+    lat: 59.93402,
+    lng: 10.76542
   },
   // 23. Vestgrensa 2
   {
@@ -519,8 +519,8 @@ export const projects: Project[] = [
     category: "Offentlig (Public)",
     description: "A wood-clad community clinic prioritizing circular material use, biophilic design elements, and natural healing spaces featuring beautiful local ash wood inside.",
     image: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.94403,
-    lng: 10.72541
+    lat: 59.94367,
+    lng: 10.72637
   },
   // 24. Vogts gate 31
   {
@@ -531,8 +531,8 @@ export const projects: Project[] = [
     category: "Boligbygg (Residential)",
     description: "A pristine cedar-clad home on the shores of Lake Nisser, boasting double-height living areas and highly architectural wood screens that capture stunning light shadows.",
     image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.9351,
-    lng: 10.75383
+    lat: 59.93309,
+    lng: 10.76206
   },
   // 25. Vogts gate 33
   {
@@ -543,8 +543,8 @@ export const projects: Project[] = [
     category: "Boligbygg (Residential)",
     description: "The companion home next door, using horizontal charred pre-weathered larch cladding and immense glass panels that seamlessly merge indoor spaces with lake surroundings.",
     image: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.93527,
-    lng: 10.75417
+    lat: 59.93325,
+    lng: 10.76254
   },
   // 26. Waldemar Thranes gate 10
   {
@@ -555,7 +555,7 @@ export const projects: Project[] = [
     category: "Leilighetsbygg (Multi-family)",
     description: "A highly sophisticated modern urban infill, integrating custom steel window profiles and beautifully textured light grey render partitions to create an innovative living space.",
     image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=1200",
-    lat: 59.92557,
-    lng: 10.73728
+    lat: 59.9241,
+    lng: 10.7386
   }
 ];

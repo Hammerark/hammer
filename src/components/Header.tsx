@@ -27,8 +27,8 @@ const DotMenuIcon = ({ isHovered, isMobileOpen }: { isHovered: boolean; isMobile
     normal: { width: 5, height: 5, x: 23.5, y: 13.5, rotate: 0, scale: 1 },
     hover: { width: 5, height: 5, x: 8.5, y: 18.5, rotate: 0, scale: 1 }
   };
-  const transitionNormal = { delay: 0.2, type: "spring", stiffness: 350, damping: 25 };
-  const transitionHover = { delay: 0, type: "spring", stiffness: 350, damping: 25 };
+  const transitionNormal = { delay: 0.2, type: "spring" as const, stiffness: 350, damping: 25 };
+  const transitionHover = { delay: 0, type: "spring" as const, stiffness: 350, damping: 25 };
 
   const dotColor = isMobileOpen ? "bg-white" : "bg-black";
 

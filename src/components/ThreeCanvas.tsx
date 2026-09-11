@@ -109,8 +109,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 18.0 : 2.5;
-  const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 24.0 : 6.0;
+  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 2.5 : 2.5;
+  const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 5.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
   const [zoom, setZoom] = useState(getBaseZoom());
@@ -1437,7 +1437,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         <motion.div
           className="map-container relative"
           style={{
-            width: "90vw",
+            width: isMobileSize ? "auto" : "90vw",
+            height: isMobileSize ? "100dvh" : "auto",
             aspectRatio: "2048 / 1270",
             cursor: isMapInteracting ? (isDragging ? "grabbing" : "grab") : "zoom-in"
           }}

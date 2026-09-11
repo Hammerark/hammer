@@ -5,16 +5,7 @@ import hammerLogo from "../assets/images/Hammer_logo_sort_F41.png";
 import { motion } from "motion/react";
 import { triggerHaptic } from "../utils";
 
-const CATEGORIES = ["ALLE", "BOLIG", "NÆRING", "OFFENTLIG"];
 
-const getFilterMatch = (proj: Project, filter: string) => {
-  if (filter === "ALLE") return true;
-  const cat = proj.category.toLowerCase();
-  if (filter === "BOLIG") return cat.includes("residential") || cat.includes("multi-family") || cat.includes("renovation");
-  if (filter === "OFFENTLIG") return cat.includes("public") || cat.includes("cultural");
-  if (filter === "NÆRING") return cat.includes("commercial") || cat.includes("mixed use");
-  return true;
-};
 
 interface PortfolioProps {
   projects: Project[];
@@ -23,11 +14,10 @@ interface PortfolioProps {
 }
 
 export const Portfolio: React.FC<PortfolioProps> = ({ projects, onSelectProject, selectedProject }) => {
-  const [activeFilter, setActiveFilter] = useState("ALLE");
-  const [showAll, setShowAll] = useState(false);
+    const [showAll, setShowAll] = useState(false);
 
   const displayedProjects = showAll 
-    ? projects.filter(p => getFilterMatch(p, activeFilter))
+    ? projects
     : projects.slice(0, 4);
 
   const rows = [];
@@ -39,30 +29,9 @@ export const Portfolio: React.FC<PortfolioProps> = ({ projects, onSelectProject,
     <div className="pt-24 pb-16 md:pt-32 md:pb-24 px-4 sm:px-6 md:px-12 w-full min-h-screen flex flex-col justify-between">
       <div className="w-full flex flex-col items-start">
         {/* Category Filter Bar */}
-        {showAll ? (
-          <div className="flex gap-6 md:gap-10 mb-12 border-b border-neutral-300 w-full overflow-x-auto no-scrollbar">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                onClick={() => {
-                  triggerHaptic();
-                  setActiveFilter(cat);
-                }}
-                className={`pb-3 text-xs md:text-sm tracking-widest font-sans font-medium transition-all uppercase whitespace-nowrap ${
-                  activeFilter === cat 
-                    ? "text-neutral-900 border-b-2 border-neutral-900" 
-                    : "text-neutral-400 hover:text-neutral-600 border-b-2 border-transparent"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+        <div className="flex justify-between items-end w-full mb-12 border-b border-neutral-300 pb-3">
+            <h2 className="text-sm md:text-base tracking-widest font-sans font-medium uppercase text-neutral-900">{showAll ? "Alle prosjekter" : "Utvalgt"}</h2>
           </div>
-        ) : (
-          <div className="flex justify-between items-end w-full mb-12 border-b border-neutral-300 pb-3">
-            <h2 className="text-sm md:text-base tracking-widest font-sans font-medium uppercase text-neutral-900">Utvalgt</h2>
-          </div>
-        )}
 
         <div className="flex flex-col gap-16 w-full mb-16 md:mb-20">
           {rows.map((row, rowIdx) => {

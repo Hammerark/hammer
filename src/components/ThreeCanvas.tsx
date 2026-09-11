@@ -1401,57 +1401,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
   return (
     <div className="relative w-full h-full select-none overflow-hidden bg-white">
-      {/* Map Filter Chips (All screen sizes) */}
-      <AnimatePresence>
-      {scrollProgress >= 0.70 && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.8, ease: "easeInOut" }}
-          className="absolute inset-0 pointer-events-none z-[49] overflow-hidden">
-          <div className="absolute bottom-[4%] md:bottom-0 left-0 w-full px-6 pb-[24px] md:pb-[32px] flex justify-center items-center pointer-events-none z-[49]">
-             <motion.div 
-               transition={{ duration: 0.8, ease: "easeInOut" }}
-               className={`flex flex-row items-center transition-all duration-[800ms] ease-in-out pointer-events-auto ${isCategoriesCollapsed ? "space-x-1.5 opacity-90 max-w-[50vw]" : "space-x-2 max-w-[calc(100vw-48px)] md:max-w-none overflow-x-auto no-scrollbar"}`}
-               style={{ WebkitOverflowScrolling: "touch" }}
-             >
-               <AnimatePresence>
-                {mapFilters.filter(f => !isCategoriesCollapsed || f.id !== "ALLE").map((filter, idx) => (
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.8, ease: "easeInOut" }}
-                    key={filter.id}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    triggerHaptic();
-                    e.stopPropagation();
-                    setActiveFilter(filter.id);
-                  }}
-                  className={`pointer-events-auto flex items-center justify-center shrink-0 border transition-all duration-[800ms] ${
-                    isCategoriesCollapsed 
-                      ? "rounded-none h-[25px] w-[25px] p-[5px] bg-white border-neutral-200 ring-0 " + (activeFilter === filter.id ? "ring-1 ring-neutral-900 border-neutral-900" : "")
-                      : "h-[25px] md:h-[24px] px-4 rounded-none text-[8px] md:text-[8px] tracking-widest uppercase " + (activeFilter === filter.id ? "bg-neutral-900 text-white border-neutral-900" : "bg-white/90 backdrop-blur-sm text-neutral-600 border-neutral-200 hover:border-neutral-400")
-                  }`}
-                  style={{ ...(isCategoriesCollapsed ? { zIndex: mapFilters.length - idx } : {}) }}
-                >
-                  {isCategoriesCollapsed ? (
-                     filter.icon ? (
-                       <motion.img transition={{ duration: 0.8, ease: "easeInOut" }} src={filter.icon} alt="" draggable={false} className={`w-full h-full object-contain pointer-events-none select-none ${activeFilter === filter.id ? 'invert' : ''}`} />
-                     ) : null
-                  ) : (
-                     <motion.span transition={{ duration: 0.8, ease: "easeInOut" }} className="whitespace-nowrap flex items-center h-full pt-[1px]">{filter.label}</motion.span>
-                  )}
-                </motion.button>
-              ))}
-              </AnimatePresence>
-            </motion.div>
-          </div>
-        </motion.div>
-      )}
-      </AnimatePresence>
+
 
       {/* Mobile Map HUD overrides */}
       {isMobileSize && scrollProgress >= 0.5 && (

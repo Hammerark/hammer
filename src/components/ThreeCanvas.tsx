@@ -109,8 +109,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 2.5 : 2.5;
-  const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 5.0 : 6.0;
+  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 2.5 : 2.5;
+  const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 5.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
   const [zoom, setZoom] = useState(getBaseZoom());
@@ -790,7 +790,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
         // Perfect physical timeline: ensures all particles complete landing/trajectory BEFORE progress 0.70
         // triggerStartProgress range on desktop: 0.15 to 0.23, mobile: 0.01 to 0.09
-        const baseStart = (typeof window !== "undefined" && window.innerWidth <= 767) ? 0.01 : 0.15;
+        const baseStart = (typeof window !== "undefined" && window.innerWidth <= 1024) ? 0.01 : 0.15;
         const triggerStartProgress = baseStart + (seedValue1 * 0.5 + 0.5) * 0.08;
         // triggerDuration range: 0.45 to 0.55. Total time: 0.60 to 0.78 progress units max
         const triggerDuration = 0.55 + (seedValue2 * 0.5 + 0.5) * 0.15;
@@ -846,7 +846,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     const handleTouchMoveTilt = (e: TouchEvent) => {
       // No sliding on mobile to prevent interference with scrolling.
-      if (typeof window !== "undefined" && window.innerWidth <= 767) {
+      if (typeof window !== "undefined" && window.innerWidth <= 1024) {
         return;
       }
       if (!renderer.domElement || !containerRef.current || e.touches.length === 0) return;
@@ -861,7 +861,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     };
 
     const handleTouchStartTilt = (e: TouchEvent) => {
-      if (typeof window !== "undefined" && window.innerWidth <= 767) {
+      if (typeof window !== "undefined" && window.innerWidth <= 1024) {
         // If motion sensor is granted on mobile, only allow interaction through moving the device.
         if (localStorage.getItem("hammerMotionPermission") === "granted") {
           return;
@@ -1027,7 +1027,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const dt = Math.min(0.1, (currentTime - lastTime) / 1000);
       lastTime = currentTime;
 
-      const isMobile = window.innerWidth <= 767;
+      const isMobile = window.innerWidth <= 1024;
 
       // Beautiful fluid lerp to increase scrolling smoothness (snappier on mobile)
       const lerpSpeed = isMobile ? 6.0 : 2.5;
@@ -1396,7 +1396,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     return true;
   };
 
-  const isMobileSize = typeof window !== "undefined" && window.innerWidth <= 767;
+  const isMobileSize = typeof window !== "undefined" && window.innerWidth <= 1024;
   const isCategoriesCollapsed = false;
 
   return (
@@ -1410,7 +1410,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         className={`absolute inset-0 w-full h-full ${scrollProgress < 0.65 ? 'cursor-pointer' : ''}`}
         onClick={() => {
           triggerHaptic();
-          if (scrollRef.current < 0.65 && onHClick && typeof window !== "undefined" && window.innerWidth > 767) {
+          if (scrollRef.current < 0.65 && onHClick && typeof window !== "undefined" && window.innerWidth > 1024) {
             onHClick();
           }
         }}
@@ -1507,7 +1507,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const isActive = isMobileSize ? isSelectedMob : isSelectedDesk;
               if (!coord || !getFilterMatch(proj, activeFilter)) return null;
               
-              const isMobile = typeof window !== "undefined" && window.innerWidth <= 767;
+              const isMobile = typeof window !== "undefined" && window.innerWidth <= 1024;
               
               // Mobile opacity logic
               const hasMobileSelection = !!selectedMobileProject;
@@ -1555,7 +1555,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                         }
                         e.stopPropagation();
                         
-                        const isMobile = window.innerWidth <= 767;
+                        const isMobile = window.innerWidth <= 1024;
                         if (isMobile) {
                           if (selectedMobileProject?.id === proj.id) {
                             setSelectedMobileProject(null);

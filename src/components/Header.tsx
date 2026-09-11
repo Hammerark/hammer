@@ -126,77 +126,7 @@ export const Header: React.FC<HeaderProps> = ({ activePage, onPageChange, scroll
         {/* Logo Placeholder */}
         <div className="w-10"></div>
 
-        {/* Menu Container */}
-        <div 
-          className={`static md:relative flex items-center py-4 md:py-6 -my-4 md:-my-6 pl-12 -ml-12 pointer-events-auto ${isHovered ? "menu-open" : ""}`}
-          onMouseLeave={() => !isMobile && setIsHovered(false)}
-          onMouseEnter={() => !isMobile && setIsHovered(true)}
-        >
-          <motion.nav 
-            className={`flex flex-col md:flex-row items-end md:items-center justify-center md:justify-end gap-6 md:gap-6 md:mr-6 absolute md:relative inset-0 md:inset-auto ${
-              isMobile 
-                ? "fixed w-full h-[100dvh] bg-black z-40 top-0 left-0 px-4 sm:px-6 pt-32" 
-                : "pr-0 md:pr-2 bg-transparent p-0 rounded-none border-none right-auto"
-            }`}
-            initial="normal"
-            animate={isHovered ? "hover" : "normal"}
-            variants={{
-              normal: { opacity: 0, x: isMobile ? 20 : 20, y: isMobile ? 0 : 0, pointerEvents: "none" as const, transition: { duration: 0.2, ease: "easeIn" } },
-              hover: { opacity: 1, x: 0, y: 0, pointerEvents: "auto" as const, transition: { duration: 0.5, ease: "easeOut" } }
-            }}
-          >
-            {navItems.map((item) => {
-              const isNavActive = item.id === "hjem" ? (activePage === "hjem" && scrollProgress >= 0.8) : activePage === item.id;
-              
-              const textClass = isMobile
-                ? (isNavActive ? "text-white" : "text-neutral-400 hover:text-white")
-                : (isNavActive ? "text-neutral-900" : "text-neutral-600 hover:text-neutral-900");
-                
-              const underlineClass = isMobile ? "bg-white" : "bg-neutral-900";
-              const label = isMobile ? item.label.toUpperCase() : item.label;
-
-              return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  triggerHaptic();
-                  handleNavClick(item.id as PageId);
-                }}
-                className={`group relative text-right md:text-left transition-colors whitespace-nowrap ${textClass} ${
-                  isMobile 
-                    ? "text-4xl font-sans tracking-tight pb-2" 
-                    : "text-base font-sans font-light tracking-tight"
-                }`}
-              >
-                {label}
-                <span 
-                  className={`absolute right-0 md:left-0 md:right-auto bottom-0 transition-all duration-300 ease-out ${underlineClass} ${
-                    isMobile ? "h-[3px]" : "h-[1px] -bottom-1"
-                  } ${
-                    isNavActive ? "w-full" : "w-0 group-hover:w-full"
-                  }`} 
-                />
-              </button>
-              );
-            })}
-          </motion.nav>
-
-          {/* Menu Toggle area */}
-          <div
-            className={`pointer-events-auto relative z-50 focus:outline-none rounded-full cursor-pointer flex-shrink-0 transition-colors duration-300`}
-            onMouseEnter={() => !isMobile && setIsHovered(true)}
-            onClick={() => {
-              if (isMobile) {
-                triggerHaptic();
-                setIsHovered(!isHovered);
-              }
-            }}
-            aria-label="Toggle menu"
-          >
-            <DotMenuIcon isHovered={isHovered} isMobileOpen={isMobile && isHovered} />
-          </div>
         </div>
-      </div>
     </header>
   );
 };

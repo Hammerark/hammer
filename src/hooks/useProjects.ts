@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Project, projects as staticProjects } from '../data/projects';
+import { Project } from '../data/projects';
 import { sanityClient } from '../sanityClient';
 
 export function useProjects() {
-  const [allProjects, setAllProjects] = useState<Project[]>(staticProjects);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export function useProjects() {
             };
           });
 
-        setAllProjects([...staticProjects, ...mappedProjects]);
+        setAllProjects(mappedProjects);
       } catch (error) {
         console.error("Failed to fetch sanity projects:", error);
       } finally {

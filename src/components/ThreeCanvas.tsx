@@ -109,8 +109,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 12.0 : 2.5;
-  const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 18.0 : 6.0;
+  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 18.0 : 2.5;
+  const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 24.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
   const [zoom, setZoom] = useState(getBaseZoom());
@@ -1545,6 +1545,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                       id={`html-marker-${proj.id}`}
                       aria-label={`Prosjekt: ${proj.name}, ${proj.location}`}
                       aria-expanded={isActive}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
                       onClick={(e) => {
                         triggerHaptic();
                         if (isDragModeEnabled) {
@@ -1556,12 +1557,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                         const isMobile = window.innerWidth <= 767;
                         if (isMobile) {
                           if (selectedMobileProject?.id === proj.id) {
-                            onProjectClick(proj);
+                            setSelectedMobileProject(null);
                           } else {
                             setSelectedMobileProject(proj);
                           }
-                        } else {
-                          onProjectClick(proj);
                         }
                       }}
                       onMouseDown={(e) => {

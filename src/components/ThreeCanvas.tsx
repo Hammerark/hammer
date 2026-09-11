@@ -17,8 +17,8 @@ const getSpringWeight = (t: number): number => {
   if (t <= 0) return 0;
   if (t >= 1) return 1;
 
-  const zeta = 0.85; // slightly higher damping ratio for an elegantly controlled, non-jittery architectural motion
-  const omega = 6.5; // lower natural frequency to produce a slower, more deliberate and high-precision glide into target positions
+  const zeta = 0.90; // slightly higher damping ratio for an elegantly controlled, non-jittery architectural motion
+  const omega = 4.5; // lower natural frequency to produce a slower, more deliberate and high-precision glide into target positions
   
   const wd = omega * Math.sqrt(1 - zeta * zeta);
   const expTerm = Math.exp(-zeta * omega * t);
@@ -1029,7 +1029,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const isMobile = window.innerWidth <= 767;
 
       // Beautiful fluid lerp to increase scrolling smoothness (snappier on mobile)
-      const lerpSpeed = isMobile ? 12.0 : 4.2;
+      const lerpSpeed = isMobile ? 6.0 : 2.5;
       smoothProgress += (rawP - smoothProgress) * (1 - Math.exp(-lerpSpeed * dt));
       const p = smoothProgress;
 
@@ -1169,11 +1169,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             z = THREE.MathUtils.lerp(physZ, targetZ, tSpring);
 
             // Add slight tactile vertical bounce
-            if (t > 0.70) {
-              const bt = (t - 0.70) / 0.30;
-              const damping = Math.exp(-bt * 4.0);
+            if (t > 0.65) {
+              const bt = (t - 0.65) / 0.35;
+              const damping = Math.exp(-bt * 3.0);
               const bounceWave = Math.abs(Math.sin(bt * Math.PI * 3.0));
-              const bounceHeight = 5.5; // beautifully tuned for tactile settle feedback
+              const bounceHeight = 8.0; // beautifully tuned for tactile settle feedback
               y += bounceWave * damping * bounceHeight;
             }
             
@@ -1191,9 +1191,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
             // Smoothly fade out the 3D target particles as the 2D HTML markers fade in
             let markerOpacity = 0.0;
-            if (p >= 0.65 && p < 0.71) {
-              markerOpacity = (p - 0.65) / 0.06;
-            } else if (p >= 0.71) {
+            if (p >= 0.78 && p < 0.85) {
+              markerOpacity = (p - 0.78) / 0.07;
+            } else if (p >= 0.85) {
               markerOpacity = 1.0;
             }
             opacityVal = Math.max(0, 1.0 - markerOpacity);
@@ -1292,9 +1292,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
           // Fade markers in and out beautifully based on scroll progress
           let opacity = 0.0;
-          if (p >= 0.65 && p < 0.71) {
+          if (p >= 0.78 && p < 0.85) {
             opacity = (p - 0.65) / 0.06; // fade in
-          } else if (p >= 0.71) {
+          } else if (p >= 0.85) {
             opacity = 1.0;
           }
 
@@ -1306,9 +1306,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
         // Update the HTML Map Layer opacity and pointer-events dynamically inside tick
         let mapOpacityVal = 0.0;
-        if (p >= 0.65 && p < 0.71) {
+        if (p >= 0.78 && p < 0.85) {
           mapOpacityVal = (p - 0.65) / 0.06;
-        } else if (p >= 0.71) {
+        } else if (p >= 0.85) {
           mapOpacityVal = 1.0;
         }
 

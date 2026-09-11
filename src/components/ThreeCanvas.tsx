@@ -122,12 +122,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
        const next = typeof newPan === 'function' ? newPan(prev) : newPan;
        if (next.x === 0 && next.y === 0) return next;
        
-       const baseW = typeof window !== 'undefined' ? window.innerWidth * 0.9 : 1000;
-       const baseH = baseW / (2048 / 1270);
-       const scaledW = baseW * currentZoom;
-       const scaledH = baseH * currentZoom;
+       const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
        const winW = typeof window !== 'undefined' ? window.innerWidth : 1000;
        const winH = typeof window !== 'undefined' ? window.innerHeight : 1000;
+       
+       const baseW = isMobile ? winH * (2048 / 1270) : winW * 0.9;
+       const baseH = isMobile ? winH : baseW / (2048 / 1270);
+       
+       const scaledW = baseW * currentZoom;
+       const scaledH = baseH * currentZoom;
        
        const maxX = Math.max(0, (scaledW - winW) / 2);
        const maxY = Math.max(0, (scaledH - winH) / 2);

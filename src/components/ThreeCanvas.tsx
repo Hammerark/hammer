@@ -109,7 +109,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 3.15 : 2.5;
+  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 5.5 : 2.5;
   const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 18.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
@@ -793,7 +793,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const baseStart = (typeof window !== "undefined" && window.innerWidth <= 767) ? 0.01 : 0.15;
         const triggerStartProgress = baseStart + (seedValue1 * 0.5 + 0.5) * 0.08;
         // triggerDuration range: 0.45 to 0.55. Total time: 0.60 to 0.78 progress units max
-        const triggerDuration = 0.45 + (seedValue2 * 0.5 + 0.5) * 0.10;
+        const triggerDuration = 0.85 + (seedValue2 * 0.5 + 0.5) * 0.20;
 
         // Custom individual physics: staggered vertical recoil and gravity gives full 3D depth to the explosion plume
         const gravityConstant = -35.0 - Math.abs(seedValue2) * 20.0;
@@ -977,6 +977,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     }
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    window.addEventListener("deviceorientation", handleDeviceOrientation, { passive: true });
     window.addEventListener("touchmove", handleTouchMoveTilt, { passive: true });
     window.addEventListener("touchstart", handleTouchStartTilt, { passive: true });
 
@@ -1038,8 +1039,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       if (isMobile) {
         if (!hasRequestedMotionRef.current && p < 0.1) {
           // Floating animation (more noticeable to indicate 3D nature)
-          floatX = Math.sin(elapsedTime * 0.002) * 0.15;
-          floatY = Math.cos(elapsedTime * 0.0015) * 0.15;
+          floatX = Math.sin(elapsedTime * 0.002) * 0.075;
+          floatY = Math.cos(elapsedTime * 0.0015) * 0.075;
         }
       }
 
@@ -1352,6 +1353,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("deviceorientation", handleDeviceOrientation);
       window.removeEventListener("touchmove", handleTouchMoveTilt);
       window.removeEventListener("touchstart", handleTouchStartTilt);
       window.removeEventListener("deviceorientation", handleDeviceOrientation);
@@ -1631,11 +1633,23 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                       aria-label={`Prosjekt: ${proj.name}, ${proj.location}`}
                       aria-expanded={isActive}
                       onClick={(e) => {
+                        triggerHaptic();
                         if (isDragModeEnabled) {
                           e.stopPropagation();
-                          return; // Ignore clicking on markers if we are in manual positioning mode
+                          return;
                         }
-                        e.stopPropagation(); // Prevent logging background coordinates when clicking visual pins
+                        e.stopPropagation();
+                        
+                        const isMobile = window.innerWidth <= 767;
+                        if (isMobile) {
+                          if (selectedMobileProject?.id === proj.id) {
+                            onProjectClick(proj);
+                          } else {
+                            setSelectedMobileProject(proj);
+                          }
+                        } else {
+                          onProjectClick(proj);
+                        }
                       }}
                       onMouseDown={(e) => {
                         if (isDragModeEnabled) {
@@ -1688,7 +1702,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                               transformOrigin: "bottom center",
                               marginBottom: `${12 / (Math.pow(zoom, 0.5) * (0.4 * zoom + 0.6))}px`
                             }}
-                            className="hidden md:flex flex-col w-48 absolute bottom-full left-1/2 pointer-events-none z-50"
+                            className={`flex flex-col w-48 absolute bottom-full left-1/2 pointer-events-none z-50 ${isMobileSize && selectedMobileProject?.id !== proj.id ? 'hidden' : ''}`}
                           >
                             <div className={`relative w-full font-sans tracking-widest text-neutral-900 overflow-visible origin-bottom
                             opacity-0 group-hover:opacity-100

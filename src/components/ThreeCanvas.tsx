@@ -1611,9 +1611,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                         {!isDragModeEnabled && (
                           <div
                             style={{ 
-                              transform: `translateX(-50%) scale(${1 / Math.pow(zoom, 0.5)})`,
+                              transform: `translateX(-50%) scale(${1 / zoom})`,
                               transformOrigin: "bottom center",
-                              marginBottom: `${12 / (Math.pow(zoom, 0.5) * (0.4 * zoom + 0.6))}px`
+                              marginBottom: `${16 / zoom}px`
                             }}
                             className={`flex flex-col w-48 absolute bottom-full left-1/2 pointer-events-none z-50 ${isMobileSize && selectedMobileProject?.id !== proj.id ? 'hidden' : ''}`}
                           >

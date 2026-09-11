@@ -108,26 +108,6 @@ export const Header: React.FC<HeaderProps> = ({ activePage, onPageChange, scroll
   // When mobile menu is open, make the header transparent so it blends with the black background
   const finalHeaderBgClass = (isMobile && isHovered) ? "bg-transparent" : headerBgClass;
 
-  return (
-    <header 
-      className={`fixed top-0 left-0 w-full z-[100] transition-colors duration-300 pt-[5px] px-4 sm:px-6 md:px-12 pointer-events-none`}
-    >
-      <div 
-        className={`absolute inset-0 w-full h-[80px] md:h-[110px] pointer-events-auto transition-colors duration-300 ${finalHeaderBgClass}`}
-        onMouseEnter={() => setIsHeaderHovered(true)}
-        onMouseLeave={() => setIsHeaderHovered(false)}
-      />
-      
-      <div 
-        className="w-full py-4 md:py-8 flex items-center justify-between pointer-events-none relative z-50"
-        onMouseEnter={() => setIsHeaderHovered(true)}
-        onMouseLeave={() => setIsHeaderHovered(false)}
-      >
-        {/* Logo Placeholder */}
-        <div className="w-10"></div>
-
-        </div>
-    </header>
-  );
+  return null;
 };
 

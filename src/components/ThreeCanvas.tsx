@@ -109,7 +109,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 5.5 : 2.5;
+  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 12.0 : 2.5;
   const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 767 ? 18.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
@@ -784,7 +784,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const combinedDirZ = radialZ * 0.45 + angleSin * 0.55;
 
         // Individual launch speeds between 35.0 and 70.0 for varied distance distributions
-        const speedMagnitude = 35.0 + Math.abs(seedValue1) * 35.0; 
+        const speedMagnitude = 75.0 + Math.abs(seedValue1) * 75.0; 
         const driftX = combinedDirX * speedMagnitude;
         const driftZ = combinedDirZ * speedMagnitude;
 
@@ -793,10 +793,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const baseStart = (typeof window !== "undefined" && window.innerWidth <= 767) ? 0.01 : 0.15;
         const triggerStartProgress = baseStart + (seedValue1 * 0.5 + 0.5) * 0.08;
         // triggerDuration range: 0.45 to 0.55. Total time: 0.60 to 0.78 progress units max
-        const triggerDuration = 0.85 + (seedValue2 * 0.5 + 0.5) * 0.20;
+        const triggerDuration = 0.55 + (seedValue2 * 0.5 + 0.5) * 0.15;
 
         // Custom individual physics: staggered vertical recoil and gravity gives full 3D depth to the explosion plume
-        const gravityConstant = -35.0 - Math.abs(seedValue2) * 20.0;
+        const gravityConstant = -45.0 - Math.abs(seedValue2) * 30.0;
         const initialVelocityY = 16.0 + Math.abs(seedValue3) * 14.0;
 
         // Spin offsets
@@ -1402,43 +1402,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   return (
     <div className="relative w-full h-full select-none overflow-hidden bg-white">
 
-
-      {/* Mobile Map HUD overrides */}
-      {isMobileSize && scrollProgress >= 0.5 && (
-        <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
-          {/* Bottom Sheet */}
-          <div 
-            className={`absolute bottom-0 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] w-full bg-white text-black border-t border-neutral-200 transform pointer-events-auto pb-[calc(2rem+10vh)] pt-6 px-6 ${
-              selectedMobileProject ? 'translate-y-[25%] opacity-100' : 'translate-y-[100%] opacity-0'
-            }`}
-            style={{ transition: "all 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94)" }}
-          >
-            {selectedMobileProject && (
-              <div className="flex flex-col h-full gap-4">
-                <div>
-                  <h3 className="font-sans font-medium text-2xl tracking-tight uppercase leading-none mb-2">
-                    {selectedMobileProject.name}
-                  </h3>
-                  <div className="font-mono text-[9px] tracking-[0.2em] text-neutral-500 uppercase flex flex-col gap-1 mt-3">
-                    <p>{selectedMobileProject.category}</p>
-                    <p>{selectedMobileProject.location} • {selectedMobileProject.year}</p>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => {
-                    triggerHaptic();
-                    onProjectClick(selectedMobileProject);
-                  }}
-                  className="mt-2 text-[10px] tracking-widest font-medium uppercase text-neutral-900 flex items-center gap-1 w-fit py-2 hover:opacity-70 transition-opacity"
-                >
-                  Les mer <ArrowRight className="w-3 h-3 ml-1" />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Three.js canvas container */}
       <div 

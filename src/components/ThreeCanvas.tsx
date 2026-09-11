@@ -1515,6 +1515,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               // Mobile opacity logic
               const hasMobileSelection = !!selectedMobileProject;
               const opacity = isMobile && hasMobileSelection && !isSelectedMob ? "opacity-20" : "opacity-100";
+              
+              const markerScale = isMobile ? 
+                (isSelectedMob ? 2.346 : 1.38) * (0.6 / zoom) * (0.75 + Math.max(0, zoom - 3.15) / (18.0 - 3.15) * 0.25) :
+                (0.4 + 0.6 / zoom) * 0.8;
+                
+              // Perfectly invert the map zoom and marker scale so the tooltip is exactly its base CSS size on screen.
+              const tooltipScale = 1 / (zoom * markerScale);
 
               return (
                 <div
@@ -1534,11 +1541,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                       height: "0px",
                       position: "relative"
                     }}
-                    animate={{
-                      scale: isMobile ? 
-                        (isSelectedMob ? 2.346 : 1.38) * (0.6 / zoom) * (0.75 + Math.max(0, zoom - 3.15) / (18.0 - 3.15) * 0.25) :
-                        (0.4 + 0.6 / zoom) * 0.8
-                    }}
+                    animate={{ scale: markerScale }}
                     transition={
                       isDragging 
                         ? { type: "tween", duration: 0 } 
@@ -1614,9 +1617,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                         {!isDragModeEnabled && (
                           <div
                             style={{ 
-                              transform: `translateX(-50%) scale(${1 / zoom})`,
+                              transform: `translateX(-50%) scale(${tooltipScale})`,
                               transformOrigin: "bottom center",
-                              marginBottom: `${16 / zoom}px`
+                              marginBottom: `${16 / (zoom * markerScale)}px`
                             }}
                             className={`flex flex-col w-48 absolute bottom-full left-1/2 pointer-events-none z-50 ${isMobileSize && selectedMobileProject?.id !== proj.id ? 'hidden' : ''}`}
                           >

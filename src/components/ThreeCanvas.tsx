@@ -1,12 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useMotionValue, animate } from "motion/react";
 import { RotateCcw, Lock, Unlock, Copy, Check, ArrowRight, Smartphone } from "lucide-react";
 import { Project } from "../data/projects";
 import osloNolliMap from "../assets/images/StorOslo.png";
-import osloNolliMap1600 from "../assets/images/StorOslo_1600.webp";
-import osloNolliMap2400 from "../assets/images/StorOslo_2400.webp";
-import osloNolliMap3600 from "../assets/images/StorOslo_3600.webp";
 import boligIcon from "../assets/images/Ikoner/Bolig2.png";
 import offentligIcon from "../assets/images/Ikoner/Offentlig2.png";
 import naeringIcon from "../assets/images/Ikoner/Næring2.png";
@@ -84,6 +81,7 @@ interface ThreeCanvasProps {
   activeProject: Project | null;
   onHClick?: () => void;
   hasRequestedMotion?: boolean;
+  hasStartedSequence?: boolean;
 }
 
 
@@ -166,7 +164,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   onProjectClick,
   activeProject,
   onHClick,
-  hasRequestedMotion = false
+  hasRequestedMotion = false,
+  hasStartedSequence = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -230,6 +229,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const isMapInteractingRef = useRef(isMapInteracting);
   const autoZoomTriggeredRef = useRef(false);
   const htmlMapInteractiveWrapperRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const actualMarkersRef = useRef<Record<string, HTMLDivElement | null>>({});
   const autoZoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
@@ -241,6 +241,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   useEffect(() => {
     hasRequestedMotionRef.current = hasRequestedMotion;
   }, [hasRequestedMotion]);
+  
+  const hasStartedSequenceRef = useRef(hasStartedSequence);
+  useEffect(() => {
+    hasStartedSequenceRef.current = hasStartedSequence;
+  }, [hasStartedSequence]);
   
   const [activeFilter, setActiveFilter] = useState("ALLE");
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
@@ -255,6 +260,26 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const interval = setInterval(checkHeaderMenu, 100);
     return () => clearInterval(interval);
   }, []);
+
+  const scaleMotion = useMotionValue(getBaseZoom() * MAP_SCALE);
+
+  useEffect(() => {
+    // Preload and decode the massive map image early
+    const img = new Image();
+    img.src = osloNolliMap;
+    img.decode().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    // Let tick() control the motion value during the sequence
+    if (!(window as any).hammerSequenceFinished) return;
+    
+    animate(scaleMotion, zoom * MAP_SCALE, {
+      type: "tween",
+      duration: isDragging ? 0 : (isMapInteracting ? 0.4 : 1.5),
+      ease: "easeInOut"
+    });
+  }, [zoom, isDragging, isMapInteracting]);
 
   // Wheel zoom injection logic
   useEffect(() => {
@@ -356,7 +381,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   // Reset zoom and pan if we transition away from the map view
   useEffect(() => {
     scrollRef.current = scrollProgress;
-    if (scrollProgress < 0.70) {
+    const isFinished = (window as any).hammerSequenceFinished;
+    if (scrollProgress < 0.70 && !isFinished && !autoZoomTriggeredRef.current) {
       setZoom(getBaseZoom());
       setPan({ x: 0, y: 0 });
       setIsMapInteracting(false);
@@ -1111,10 +1137,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         resetArmed = false;
       }
 
-      if ((rawP > 0.01 || (hasRequestedMotionRef.current && !hasAutostartedOnMotion)) && !isPlayingSequence && !sequenceFinished && rawP < 0.99) {
-        if (hasRequestedMotionRef.current && rawP <= 0.01) {
-          hasAutostartedOnMotion = true;
-        }
+      if ((rawP > 0.01 || hasStartedSequenceRef.current) && !isPlayingSequence && !sequenceFinished && rawP < 0.99) {
         isPlayingSequence = true;
         sequenceStartTs = currentTime;
         (window as any).hammerSequenceFinished = false;
@@ -1127,24 +1150,23 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const seqElapsed = currentTime - sequenceStartTs;
         let forcedP = 0;
         
-        // 0 - 3.0s: Raining H's landing (0.0 -> 0.70)
-        if (seqElapsed < 3000) {
-          const t = seqElapsed / 3000;
-          const ease = Math.sin((t * Math.PI) / 2); // easeOutSine makes landing less abrupt and better distributed over 3s
-          forcedP = 0.0 + ease * 0.70;
-        } 
-        // 3.0s - 4.5s: Immediate smooth Map Zoom (0.70 -> 0.85)
-        else if (seqElapsed < 4500) {
-          if (!autoZoomTriggeredRef.current && !isMapInteractingRef.current) {
-            autoZoomTriggeredRef.current = true;
-            setZoom(getTargetZoom()); // Sync Map Zoom transition
-          }
-          const t = (seqElapsed - 3000) / 1500;
-          const ease = -(Math.cos(Math.PI * t) - 1) / 2; // easeInOutSine
-          forcedP = 0.70 + ease * 0.15;
+        const TOTAL_DURATION = 3500;
+        
+        if (seqElapsed < TOTAL_DURATION) {
+          const t = seqElapsed / TOTAL_DURATION;
+          const ease = Math.sin((t * Math.PI) / 2); // easeOutSine makes landing less abrupt
+          forcedP = 0.0 + ease * 0.85;
+
+          const easeZoom = -(Math.cos(Math.PI * t) - 1) / 2; // easeInOutSine
+          const currentZoom = 1.0 + easeZoom * (getTargetZoom() - 1.0);
+          scaleMotion.set(currentZoom * MAP_SCALE);
         } 
         // Finish Sequence
         else {
+          if (!autoZoomTriggeredRef.current) {
+            autoZoomTriggeredRef.current = true;
+            setZoom(getTargetZoom()); // Sync Map Zoom transition
+          }
           if (forcedP !== 0.85 && typeof window !== 'undefined' && diagActive) stopDiagnostics();
           forcedP = 0.85;
           isPlayingSequence = false;
@@ -1584,10 +1606,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           onDoubleClick={handleDoubleClick}
         >
           <motion.div
+            ref={mapContainerRef}
             className="map-container relative flex-shrink-0"
             style={{
               cursor: "none",
               transformOrigin: "center",
+              scale: scaleMotion,
               width: isMobileSize && typeof window !== "undefined" && window.innerHeight > window.innerWidth 
                 ? "calc(75dvh * (2048 / 1270))" 
                 : "90vw",
@@ -1597,8 +1621,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             }}
             animate={{
               x: pan.x,
-              y: pan.y,
-              scale: displayZoom * MAP_SCALE
+              y: pan.y
             }}
           transition={
             isDragging 
@@ -1638,24 +1661,18 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             setHoverCoords(null);
           }}
         >
-            {/* The crisp, centered PNG artwork rendered directly */}
-            <div className="absolute inset-0 w-full h-full pointer-events-none select-none">
-              <picture>
-                <source srcSet={osloNolliMap1600} media="(max-width: 768px)" type="image/webp" />
-                <source srcSet={osloNolliMap2400} media="(max-width: 1440px)" type="image/webp" />
-                <source srcSet={osloNolliMap3600} media="(min-width: 1441px)" type="image/webp" />
-                <img 
-                  src={osloNolliMap}
-                  alt="Oslo Nolli Map"
-                  className="w-full h-full object-fill pointer-events-none"
-                  loading="eager"
-                  fetchPriority="high"
-                />
-              </picture>
-
-            </div>
+          {/* The crisp, centered PNG artwork rendered directly */}
+          <div className="absolute inset-0 w-full h-full pointer-events-none select-none origin-center">
+            <img 
+              src={osloNolliMap}
+              alt="Oslo Nolli Map"
+              className="w-full h-full object-fill pointer-events-none"
+              loading="eager"
+              fetchPriority="high"
+            />
+          </div>
             
-            {/* Project Markers rendered above the image */}
+          {/* Project Markers rendered above the image */}
             {projects.filter(proj => typeof proj.lat === 'number' && !isNaN(proj.lat) && typeof proj.lng === 'number' && !isNaN(proj.lng)).map((proj, idx) => {
               const coord = coordsState[proj.id];
               const isSelectedDesk = activeProject?.id === proj.id;
@@ -1683,7 +1700,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const inverseScale = isTouchDevice ? tooltipScale : 1;
               const btnSize = isTouchDevice ? 44 * inverseScale : 16;
               const btnOffset = isTouchDevice ? -22 * inverseScale : -8;
-              const svgSize = isTouchDevice ? (isDragModeEnabled ? 16 * inverseScale : 14 * inverseScale) : (isDragModeEnabled ? 6.3 : 5.75);
+              const svgSize = isTouchDevice ? (isDragModeEnabled ? 10 * inverseScale : 8 * inverseScale) : (isDragModeEnabled ? 6.3 : 5.75);
 
               return (
                 <div

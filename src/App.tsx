@@ -33,6 +33,7 @@ export default function App() {
     }
     return false;
   });
+  const [hasStartedSequence, setHasStartedSequence] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [nextPage, setNextPage] = useState<PageId | null>(null);
@@ -57,7 +58,7 @@ export default function App() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (activePage === "hjem" && scrollProgress < 0.1) {
-      if (!isMobile || hasRequestedMotion) {
+      if (!isMobile || hasStartedSequence) {
         timer = setTimeout(() => {
           setShowPromptText(true);
         }, 3000);
@@ -68,7 +69,7 @@ export default function App() {
       setShowPromptText(false);
     }
     return () => clearTimeout(timer);
-  }, [activePage, scrollProgress, isMobile, hasRequestedMotion]);
+  }, [activePage, scrollProgress, isMobile, hasStartedSequence]);
 
   useEffect(() => {
     if (activePage === "hjem") {
@@ -411,7 +412,7 @@ export default function App() {
                 {scrollProgress < 0.1 && (
                   <>
                     {/* Fullscreen click overlay for mobile motion request */}
-                    {isMobile && !hasRequestedMotion && (
+                    {isMobile && !hasStartedSequence && (
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -428,7 +429,7 @@ export default function App() {
                       transition={{ duration: 0.5, delay: 0.4 }}
                       className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-none"
                     >
-                      {isMobile && !hasRequestedMotion ? (
+                      {isMobile && !hasStartedSequence ? (
                         <motion.button 
                           key="prompt-explore"
                           initial={{ opacity: 0, y: 5 }}
@@ -438,11 +439,14 @@ export default function App() {
                           className="flex flex-col items-center text-center animate-pulse cursor-pointer pointer-events-auto"
                           onClick={() => {
                             triggerHaptic();
-                            setHasRequestedMotion(true);
-                            localStorage.setItem("hammerMotionPermission", "granted");
-                            const doc = window as any;
-                            if (doc.DeviceOrientationEvent && typeof doc.DeviceOrientationEvent.requestPermission === "function") {
-                              doc.DeviceOrientationEvent.requestPermission().catch(console.error);
+                            setHasStartedSequence(true);
+                            if (!hasRequestedMotion) {
+                              setHasRequestedMotion(true);
+                              localStorage.setItem("hammerMotionPermission", "granted");
+                              const doc = window as any;
+                              if (doc.DeviceOrientationEvent && typeof doc.DeviceOrientationEvent.requestPermission === "function") {
+                                doc.DeviceOrientationEvent.requestPermission().catch(console.error);
+                              }
                             }
                           }}
                         >
@@ -483,6 +487,7 @@ export default function App() {
                     activeProject={activeProject} 
                     onHClick={handleHClick}
                     hasRequestedMotion={hasRequestedMotion}
+                    hasStartedSequence={hasStartedSequence}
                   />
                 </div>
               </div>

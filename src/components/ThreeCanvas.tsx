@@ -150,6 +150,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const [isMoved, setIsMoved] = useState(false);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const isMapInteractingRef = useRef(isMapInteracting);
+  const autoZoomTriggeredRef = useRef(false);
+  const actualMarkersRef = useRef<(HTMLDivElement | null)[]>([]);
   const autoZoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     isMapInteractingRef.current = isMapInteracting;
@@ -275,19 +277,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   // Reset zoom and pan if we transition away from the map view
   useEffect(() => {
     scrollRef.current = scrollProgress;
-    if (scrollProgress < 0.80) {
+    if (scrollProgress < 0.70) {
       setZoom(getBaseZoom());
       setPan({ x: 0, y: 0 });
       setIsMapInteracting(false);
+      autoZoomTriggeredRef.current = false;
       if (autoZoomTimeoutRef.current) clearTimeout(autoZoomTimeoutRef.current);
-    } else if (scrollProgress >= 0.82 && !isMapInteractingRef.current) {
-      // Trigger auto-zoom seamlessly WHILE the map is fading in, creating a perfectly continuous motion with NO stop
-      if (autoZoomTimeoutRef.current) clearTimeout(autoZoomTimeoutRef.current);
-      autoZoomTimeoutRef.current = setTimeout(() => {
-        if (!isMapInteractingRef.current) {
-          setZoom(getTargetZoom());
-        }
-      }, 0);
     }
   }, [scrollProgress]);
 
@@ -562,8 +557,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // 2. Scene setup
     const scene = new THREE.Scene();
     scene.background = null;
-    // Soft architectural misty fog
-    scene.fog = new THREE.FogExp2("#ffffff", 0.005); // Reduced fog for transparency
+    scene.fog = new THREE.FogExp2("#ffffff", 0.005);
     sceneRef.current = scene;
 
     // 3. Camera setup
@@ -785,19 +779,17 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const combinedDirX = radialX * 0.45 + angleCos * 0.55;
         const combinedDirZ = radialZ * 0.45 + angleSin * 0.55;
 
-        // Calm the sideways drift so the rain falls heavily down instead of flying away
+        // Reduced sideways drift for heavy rain effect
         const speedMagnitude = 35.0 + Math.abs(seedValue1) * 35.0; 
         const driftX = combinedDirX * speedMagnitude;
         const driftZ = combinedDirZ * speedMagnitude;
 
-        // Perfect physical timeline: ensures all particles complete landing/trajectory BEFORE progress 0.70
-        // Start time is identical across all devices so the rain aligns perfectly with the map fade-in!
+        // Perfect physical timeline: Start at exactly the same time on all devices!
         const baseStart = 0.15;
         const triggerStartProgress = baseStart + (seedValue1 * 0.5 + 0.5) * 0.08;
-        // triggerDuration strictly compressed. Total landing time must finish BEFORE 0.70. Pause from 0.70 to 0.80.
-        const triggerDuration = 0.35 + (seedValue2 * 0.5 + 0.5) * 0.12; // 0.35 to 0.47 max
+        const triggerDuration = 0.35 + (seedValue2 * 0.5 + 0.5) * 0.12; 
 
-        // High vertical pop, very heavy gravity for a distinct downward rain
+        // Massive gravity and high pop for distinct, fast downward rain
         const gravityConstant = -80.0 - Math.abs(seedValue2) * 40.0;
         const initialVelocityY = 25.0 + Math.abs(seedValue3) * 15.0;
 
@@ -1198,13 +1190,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             // Project marker stays dark/charcoal `#111111`
             dummyColor.copy(fgColor);
 
-            // Seamless swap: Hide 3D models the millisecond HTML markers turn on (p >= 0.75)
-            // Because they have identical position and scale, the eye won't notice the swap!
-            if (p >= 0.75) {
-              opacityVal = 0.0;
-            } else {
-              opacityVal = 1.0;
+            // Smoothly fade out the 3D target particles as the 2D HTML markers fade in
+            let markerOpacity = 0.0;
+            if (p >= 0.75 && p < 0.82) {
+              markerOpacity = (p - 0.75) / 0.07;
+            } else if (p >= 0.82) {
+              markerOpacity = 1.0;
             }
+            opacityVal = Math.max(0, 1.0 - markerOpacity);
           } else {
             // Ordinary dissolving background particle follows the full simulated gravity track
             x = physX;
@@ -1219,11 +1212,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             // Shrink completely to zero as it dissolves, starting from 1.3x scale
             finalScale = (SMALL_SCALE * 1.3) * (1.0 - t * t);
 
-            // Do NOT lerp to white bgColor (which caused them to vanish prematurely)
-            dummyColor.copy(fgColor); 
+            // Fade to background color matching clean environment
+            const lerpVal = Math.min(1, t * 1.4);
+            dummyColor.copy(fgColor).lerp(bgColor, lerpVal);
 
-            // Gently fade opacity as it dissolves, ensuring they are visible much longer during the rain
-            opacityVal = Math.max(0, 1.0 - (t * t));
+            // Gently fade opacity as it dissolves
+            opacityVal = Math.max(0, 1.0 - t * t * 1.3);
           }
 
           // Apply opening animation (reversed explosion)
@@ -1263,58 +1257,25 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (opacityAttr) {
           opacityAttr.needsUpdate = true;
         }
-        } // End CULLING OPTIMIZATION
 
-        // 16. Update HTML labels on screen
-        // We project the 3D mapPos coordinates of our 8 projects into 2D viewport coordinates
-        const canvasWidth = width;
-        const canvasHeight = height;
-        
+        // 16. Update Actual HTML Map Markers
         projects.forEach((proj, idx) => {
-          const markerEl = markersRef.current[idx];
-          if (!markerEl) return;
-
-          // Project markers are only interactive during map phase
-          const activeProgress = p >= 0.70;
+          const actualMarker = actualMarkersRef.current[idx];
+          if (!actualMarker) return;
           
-          if (!activeProgress) {
-            markerEl.style.opacity = "0";
-            markerEl.style.pointerEvents = "none";
-            return;
-          }
-
-          // Compute exact position in world coordinates (taking the rig's rotation and scale into account)
-          const mapPos = getMapPosFromLatLng(proj.lat, proj.lng);
-          const targetVec = new THREE.Vector3(
-            (mapPos.x * MAP_SCALE) / currentRigScale,
-            mapPos.y / currentRigScale,
-            (mapPos.z * MAP_SCALE) / currentRigScale
-          );
-          if (rig) {
-            targetVec.applyMatrix4(rig.matrixWorld);
-          }
-          targetVec.project(camera);
-
-          // Convert to pixels on screen
-          const screenX = (targetVec.x * 0.5 + 0.5) * canvasWidth;
-          const screenY = (-targetVec.y * 0.5 + 0.5) * canvasHeight;
-
-          // At p=0.75, the 3D particles are fully landed. We do a hard, seamless swap during the static pause
-          // so there is no ghosting or double-rendering!
-          let opacity = 0.0;
+          // Exactly at 0.75, when 3D particles turn opacity=0, the HTML markers turn opacity=1!
           if (p >= 0.75) {
-            opacity = 1.0;
+            actualMarker.style.opacity = "1";
+          } else {
+            actualMarker.style.opacity = "0";
           }
-
-          // Convert to pixels on screen and apply a clear translation offset shift from 0, 0 to -50%, -50% to center markers perfectly
-          const transformStr = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%)`;
-          if (markerEl.style.transform !== transformStr) markerEl.style.transform = transformStr;
-          
-          const opacityStr = opacity.toString();
-          if (markerEl.style.opacity !== opacityStr) markerEl.style.opacity = opacityStr;
-          
-          if (markerEl.style.pointerEvents !== "auto") markerEl.style.pointerEvents = "auto";
         });
+        
+        // 16.5 Trigger Auto-Zoom flawlessly
+        if (p >= 0.85 && !autoZoomTriggeredRef.current && !isMapInteractingRef.current) {
+          autoZoomTriggeredRef.current = true;
+          setZoom(getTargetZoom());
+        }
 
         // Update the HTML Map Layer opacity and pointer-events dynamically inside tick
         let mapOpacityVal = 0.0;
@@ -1330,10 +1291,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
 
-      // Standard rendering without manual clear since autoClear is enabled
-      renderer.autoClear = true;
-
-      renderer.render(scene, camera);
+      // CULLING OPTIMIZATION: Halt completely when 3D is finished!
+      if (p < 0.85) {
+        renderer.autoClear = true;
+        renderer.render(scene, camera);
+      }
     };
 
     tick();
@@ -1416,7 +1378,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           touchAction: "none",
           opacity: 0
         }} 
-        className="absolute inset-0 z-0 flex items-center justify-center bg-white transition-opacity duration-300 overflow-hidden select-none"
+        className="absolute inset-0 z-30 flex items-center justify-center bg-white transition-opacity duration-300 overflow-hidden select-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUpOrLeave}
@@ -1729,17 +1691,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           </div>
         </div>
 
-      {/* Elegant Architectural HTML overlays (hidden to avoid duplication during map phase) */}
-      <div className="absolute inset-0 pointer-events-none z-10 invisible">
-        {projects.filter(proj => typeof proj.lat === 'number' && !isNaN(proj.lat) && typeof proj.lng === 'number' && !isNaN(proj.lng)).map((proj, idx) => (
-          <div
-            key={proj.id}
-            ref={(el) => {
-              markersRef.current[idx] = el;
-            }}
-          />
-        ))}
-      </div>
+      {/* Dummy DOM removed */}
     </div>
   );
 };

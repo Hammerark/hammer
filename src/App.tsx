@@ -255,8 +255,8 @@ export default function App() {
     const startScrollY = window.scrollY;
     const distance = targetScrollY - startScrollY;
     
-    // Elegant, cinematic duration (Extended for pause phase)
-    const duration = 3500;
+    // Elegant, cinematic duration (Synchronized precisely with the 4.5s sequence in ThreeCanvas)
+    const duration = 4500;
     let startTime: number | null = null;
     isAutoScrollingRef.current = true;
 
@@ -275,9 +275,16 @@ export default function App() {
       if (timeElapsed < duration) {
         requestAnimationFrame(animateScroll);
       } else {
-        setTimeout(() => {
-          isAutoScrollingRef.current = false;
-        }, 50);
+        let maxFrames = 60 * 5; // 5 seconds max fallback
+        const checkDone = () => {
+          maxFrames--;
+          if ((window as any).hammerSequenceFinished || maxFrames <= 0) {
+            isAutoScrollingRef.current = false;
+          } else {
+            requestAnimationFrame(checkDone);
+          }
+        };
+        requestAnimationFrame(checkDone);
       }
     };
 

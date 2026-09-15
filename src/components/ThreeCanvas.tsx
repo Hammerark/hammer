@@ -83,6 +83,78 @@ interface ThreeCanvasProps {
   hasRequestedMotion?: boolean;
 }
 
+
+// --- DIAGNOSTICS START ---
+let diagFrames: any[] = [];
+let diagActive = false;
+let diagStartTime = 0;
+
+export const startDiagnostics = () => {
+  if (typeof window !== 'undefined') (window as any).diagnosticReport = null;
+  diagFrames = [];
+  diagActive = true;
+  diagStartTime = performance.now();
+  console.log("Diagnostics started");
+  
+  setTimeout(() => {
+    diagActive = false;
+    analyzeDiagnostics();
+  }, 5000); // Record for 5 seconds
+};
+
+const analyzeDiagnostics = () => {
+  if (diagFrames.length < 2) {
+    console.log("Not enough frames");
+    return;
+  }
+  
+  let maxDelta = 0;
+  let maxMath = 0;
+  let maxRender = 0;
+  let pJumps: number[] = [];
+  let deltas: number[] = [];
+  
+  for (let i = 1; i < diagFrames.length; i++) {
+    const prev = diagFrames[i-1];
+    const curr = diagFrames[i];
+    
+    const delta = curr.time - prev.time;
+    deltas.push(delta);
+    if (delta > maxDelta) maxDelta = delta;
+    if (curr.math > maxMath) maxMath = curr.math;
+    if (curr.render > maxRender) maxRender = curr.render;
+    
+    const pJump = curr.p - prev.p;
+    if (pJump > 0) pJumps.push(pJump);
+  }
+  
+  deltas.sort((a, b) => a - b);
+  pJumps.sort((a, b) => a - b);
+  
+  const medianDelta = deltas[Math.floor(deltas.length / 2)];
+  const p95Delta = deltas[Math.floor(deltas.length * 0.95)];
+  
+  const medianPJump = pJumps.length > 0 ? pJumps[Math.floor(pJumps.length / 2)] : 0;
+  const maxPJump = pJumps.length > 0 ? pJumps[pJumps.length - 1] : 0;
+  
+  const report = {
+    totalFrames: diagFrames.length,
+    medianFrameTime: medianDelta.toFixed(2) + "ms",
+    p95FrameTime: p95Delta.toFixed(2) + "ms",
+    worstFrameTime: maxDelta.toFixed(2) + "ms",
+    worstMathTime: maxMath.toFixed(2) + "ms",
+    worstRenderTime: maxRender.toFixed(2) + "ms",
+    medianPJump: medianPJump.toFixed(5),
+    maxPJump: maxPJump.toFixed(5)
+  };
+  
+  console.log("DIAGNOSTICS REPORT:", JSON.stringify(report, null, 2));
+  
+  // Expose to window for automated extraction
+  (window as any).diagnosticReport = report;
+};
+// --- DIAGNOSTICS END ---
+
 export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   projects,
   scrollProgress,
@@ -110,7 +182,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
   const getBaseZoom = () => 1.0;
   const getTargetZoom = () => 1.40 * 1.50; // Increased by 50%
-  const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 8.0 : 6.0;
+  const getMaxZoom = () => typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 767) ? 8.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
   const [zoom, setZoom] = useState(getBaseZoom());
@@ -151,7 +223,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const isMapInteractingRef = useRef(isMapInteracting);
   const autoZoomTriggeredRef = useRef(false);
-  const actualMarkersRef = useRef<(HTMLDivElement | null)[]>([]);
+  const htmlMapInteractiveWrapperRef = useRef<HTMLDivElement>(null);
+  const actualMarkersRef = useRef<Record<string, HTMLDivElement | null>>({});
   const autoZoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     isMapInteractingRef.current = isMapInteracting;
@@ -480,8 +553,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const cy = 61.965;
 
   // Configuration
-  const LAYERS = 18;
-  const LAYER_SPACING = 0.22; // Layer spacing percentage of width
+  const isMobileSizeConfig = typeof window !== "undefined" && window.innerWidth <= 767;
+  const LAYERS = isMobileSizeConfig ? 8 : 14;
+  const LAYER_SPACING = 0.35; // Wider spacing for elegant density
   const GRID_STEP_X = W / 14;
   const GRID_STEP_Y = H / 12;
   const SMALL_SCALE = 0.024; // Scale factor for the sub-H shapes
@@ -532,10 +606,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // 1. Renderer Creator
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      alpha: true,
+      alpha: true, // Transparent WebGL canvas to show HTML map underneath
       preserveDrawingBuffer: true
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    // Boost pixel ratio on mobile slightly to fix blurriness without killing performance
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
     renderer.setSize(width, height);
     renderer.setClearColor(0x000000, 0);
 
@@ -779,8 +854,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const combinedDirX = radialX * 0.45 + angleCos * 0.55;
         const combinedDirZ = radialZ * 0.45 + angleSin * 0.55;
 
-        // Reduced sideways drift for heavy rain effect
-        const speedMagnitude = 35.0 + Math.abs(seedValue1) * 35.0; 
+        // Moderat utadgående spredning før regn (økt hastighet utover)
+        const speedMagnitude = 65.0 + Math.abs(seedValue1) * 35.0; 
         const driftX = combinedDirX * speedMagnitude;
         const driftZ = combinedDirZ * speedMagnitude;
 
@@ -840,7 +915,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     const handleTouchMoveTilt = (e: TouchEvent) => {
       // No sliding on mobile to prevent interference with scrolling.
-      if (typeof window !== "undefined" && window.innerWidth <= 1024) {
+      if (typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 767)) {
         return;
       }
       if (!renderer.domElement || !containerRef.current || e.touches.length === 0) return;
@@ -855,7 +930,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     };
 
     const handleTouchStartTilt = (e: TouchEvent) => {
-      if (typeof window !== "undefined" && window.innerWidth <= 1024) {
+      if (typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 767)) {
         // If motion sensor is granted on mobile, only allow interaction through moving the device.
         if (localStorage.getItem("hammerMotionPermission") === "granted") {
           return;
@@ -1013,30 +1088,95 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     let smoothProgress = scrollRef.current;
     let animationFrameId = 0;
     let startTime: number | null = null;
+    
+    // Internal Sequence State for time-based decoupling
+    let isPlayingSequence = false;
+    let sequenceStartTs: number | null = null;
+    let sequenceFinished = false;
+    let resetArmed = false;
+    let hasAutostartedOnMotion = false;
 
     const tick = () => {
       animationFrameId = requestAnimationFrame(tick);
+      let frameData: any = { time: performance.now(), p: 0, math: 0, render: 0 };
+      const mathStart = performance.now();
       
       const currentTime = performance.now();
       if (startTime === null) startTime = currentTime;
       const elapsedTime = currentTime - startTime;
-      const openingProgress = Math.min(1.0, elapsedTime / 3500); // 3.5s duration for velvet soft landing
+      const openingProgress = Math.min(1.0, elapsedTime / 2500); // 2.5s duration
       const easeOutExpo = openingProgress === 1.0 ? 1.0 : 1.0 - Math.pow(2, -10 * openingProgress);
       const openingFactor = 1.0 - easeOutExpo;
 
-      const rawP = (window as any).hammerScrollProgress !== undefined 
+      let rawP = (window as any).hammerScrollProgress !== undefined 
         ? (window as any).hammerScrollProgress 
         : scrollRef.current;
 
       const dt = Math.min(0.1, (currentTime - lastTime) / 1000);
       lastTime = currentTime;
 
-      const isMobile = window.innerWidth <= 1024;
+      const isMobile = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 767);
 
-      // Bypass lerp for automated animation! The App.tsx already animates it with a flawless easeInOutSine curve.
-      // Lerping it again creates compound mathematical jitter and visual stutter.
-      smoothProgress = rawP;
-      const p = rawP;
+      // START TIME-BASED SEQUENCE LOGIC
+      if (rawP > 0.05) resetArmed = true;
+
+      if (rawP < 0.01 && resetArmed) {
+        sequenceFinished = false;
+        (window as any).hammerSequenceFinished = false;
+        isPlayingSequence = false;
+        autoZoomTriggeredRef.current = false;
+        resetArmed = false;
+      }
+
+      if ((rawP > 0.01 || (hasRequestedMotionRef.current && !hasAutostartedOnMotion)) && !isPlayingSequence && !sequenceFinished && rawP < 0.99) {
+        if (hasRequestedMotionRef.current && rawP <= 0.01) {
+          hasAutostartedOnMotion = true;
+        }
+        isPlayingSequence = true;
+        sequenceStartTs = currentTime;
+        (window as any).hammerSequenceFinished = false;
+      }
+
+      let p = smoothProgress;
+
+      if (isPlayingSequence && sequenceStartTs !== null) {
+        const seqElapsed = currentTime - sequenceStartTs;
+        let forcedP = 0;
+        
+        // 0 - 3.0s: Raining H's landing (0.0 -> 0.70)
+        if (seqElapsed < 3000) {
+          const t = seqElapsed / 3000;
+          const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+          forcedP = 0.0 + ease * 0.70;
+        } 
+        // 3.0s - 4.5s: Immediate smooth Map Zoom (0.70 -> 0.85)
+        else if (seqElapsed < 4500) {
+          if (!autoZoomTriggeredRef.current && !isMapInteractingRef.current) {
+            autoZoomTriggeredRef.current = true;
+            setZoom(getTargetZoom()); // Sync Map Zoom transition
+          }
+          const t = (seqElapsed - 3000) / 1500;
+          const ease = -(Math.cos(Math.PI * t) - 1) / 2; // easeInOutSine
+          forcedP = 0.70 + ease * 0.15;
+        } 
+        // Finish Sequence
+        else {
+          forcedP = 0.85;
+          isPlayingSequence = false;
+          sequenceFinished = true;
+          (window as any).hammerSequenceFinished = true;
+        }
+        
+        smoothProgress = forcedP;
+        p = forcedP;
+      } else {
+        // Fallback to normal scroll when sequence is done or not started
+        const lerpSpeed = isMobile ? 12.0 : 4.2;
+        smoothProgress += (rawP - smoothProgress) * (1 - Math.exp(-lerpSpeed * dt));
+        p = smoothProgress;
+      }
+      // END TIME-BASED SEQUENCE LOGIC
+      frameData.p = p;
 
       let floatX = 0;
       let floatY = 0;
@@ -1127,179 +1267,181 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const customParticles = (mesh as any).customData;
         const opacityAttr = mesh.geometry.getAttribute("instanceOpacity") as THREE.InstancedBufferAttribute;
 
-        for (let i = 0; i < count; i++) {
-          const part = customParticles[i];
-          
-          // Compute local animation state based on scroll
-          let t = 0;
-          if (p >= part.triggerStartProgress) {
-            t = Math.min(1, (p - part.triggerStartProgress) / part.triggerDuration);
-          }
-
-          // Real physics and gravity-acceleration simulation as a function of the scrolling-progress 't'
-          const gravityConstant = part.gravityConstant; 
-          const initialVelocityY = part.initialVelocityY; 
-          const initialVelocityX = part.driftX; // horizontal launch velocity (fully unscaled for wider screen spread)
-          const initialVelocityZ = part.driftZ; // depth launch velocity
-
-          // Trajectory integration (s = v0 * t + 0.5 * a * t^2)
-          const physX = part.initialX + initialVelocityX * t;
-          const physY = part.initialY + initialVelocityY * t + 0.5 * gravityConstant * t * t;
-          const physZ = part.initialZ + initialVelocityZ * t;
-
-          let x = part.initialX;
-          let y = part.initialY;
-          let z = part.initialZ;
-
-          let rotXVal = 0;
-          let rotYVal = 0;
-          let rotZVal = 0;
-
-          let finalScale = SMALL_SCALE * 1.3;
-          let opacityVal = 1.0;
-
-          if (part.isProject) {
-            // High-precision landing glide to project coordinates!
-            const proj = projects[part.projectIndex];
+        // CULLING OPTIMIZATION: Only compute particles if they are visible (p < 0.85)
+        if (p < 0.85) {
+          for (let i = 0; i < count; i++) {
+            const part = customParticles[i];
             
-            // Eased smooth transition using the custom spring-damping physics algorithm
-            const tSpring = getSpringWeight(t);
-            
-            // Target coordinates mapped to local rig space coordinates
-            const mapPos = getMapPosFromLatLng(proj.lat, proj.lng);
-            const targetX = (mapPos.x * MAP_SCALE) / currentRigScale;
-            const targetY = mapPos.y / currentRigScale;
-            const targetZ = (mapPos.z * MAP_SCALE) / currentRigScale;
-
-            // Transition gracefully from the physical gravitational path to the exact target coordinate
-            x = THREE.MathUtils.lerp(physX, targetX, tSpring);
-            y = THREE.MathUtils.lerp(physY, targetY, tSpring);
-            z = THREE.MathUtils.lerp(physZ, targetZ, tSpring);
-
-            // (Removed artificial vertical bounce that caused violent shaking during transition)
-            
-            // Align orientation seamlessly to lie flat on the map blueprint, matching the exact HTML marker rotation at landing
-            const targetRotYVal = THREE.MathUtils.degToRad(getProjectRotation(proj.id));
-            rotXVal = THREE.MathUtils.lerp(part.rotSpeedX * t, -Math.PI / 2, tSpring); 
-            rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, targetRotYVal, tSpring);
-            rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
-
-            // Transition smoothly from 1.3x scale to 1.0x scale as particles settle to map markers
-            finalScale = THREE.MathUtils.lerp(SMALL_SCALE * 1.3, SMALL_SCALE, tSpring);
-
-            // Project marker stays dark/charcoal `#111111`
-            dummyColor.copy(fgColor);
-
-            // Smoothly fade out the 3D target particles as the 2D HTML markers fade in
-            let markerOpacity = 0.0;
-            if (p >= 0.75 && p < 0.82) {
-              markerOpacity = (p - 0.75) / 0.07;
-            } else if (p >= 0.82) {
-              markerOpacity = 1.0;
+            // Compute local animation state based on scroll
+            let t = 0;
+            if (p >= part.triggerStartProgress) {
+              t = Math.min(1, (p - part.triggerStartProgress) / part.triggerDuration);
             }
-            opacityVal = Math.max(0, 1.0 - markerOpacity);
-          } else {
-            // Ordinary dissolving background particle follows the full simulated gravity track
-            x = physX;
-            y = physY;
-            z = physZ;
 
-            // Spin continuously as they tumble
-            rotXVal = part.rotSpeedX * t;
-            rotYVal = part.rotSpeedY * t;
-            rotZVal = part.rotSpeedZ * t;
+            // Real physics and gravity-acceleration simulation as a function of the scrolling-progress 't'
+            const gravityConstant = part.gravityConstant; 
+            const initialVelocityY = part.initialVelocityY; 
+            const initialVelocityX = part.driftX; // horizontal launch velocity (fully unscaled for wider screen spread)
+            const initialVelocityZ = part.driftZ; // depth launch velocity
 
-            // Shrink completely to zero as it dissolves, starting from 1.3x scale
-            finalScale = (SMALL_SCALE * 1.3) * (1.0 - t * t);
+            // Trajectory integration (s = v0 * t + 0.5 * a * t^2)
+            const physX = part.initialX + initialVelocityX * t;
+            const physY = part.initialY + initialVelocityY * t + 0.5 * gravityConstant * t * t;
+            const physZ = part.initialZ + initialVelocityZ * t;
 
-            // Fade to background color matching clean environment
-            const lerpVal = Math.min(1, t * 1.4);
-            dummyColor.copy(fgColor).lerp(bgColor, lerpVal);
+            let x = part.initialX;
+            let y = part.initialY;
+            let z = part.initialZ;
 
-            // Gently fade opacity as it dissolves
-            opacityVal = Math.max(0, 1.0 - t * t * 1.3);
-          }
+            let rotXVal = 0;
+            let rotYVal = 0;
+            let rotZVal = 0;
 
-          // Apply opening animation (reversed explosion)
-          if (openingFactor > 0.001) {
-            x += part.driftX * openingFactor * 2.5;
-            y += Math.abs(part.initialVelocityY) * openingFactor * 3.0; 
-            z += part.driftZ * openingFactor * 2.5;
-            
-            rotXVal += part.rotSpeedX * openingFactor;
-            rotYVal += part.rotSpeedY * openingFactor;
-            rotZVal += part.rotSpeedZ * openingFactor;
-            
-            if (openingProgress < 0.2) {
-              opacityVal *= openingProgress / 0.2;
+            let finalScale = SMALL_SCALE * 1.3;
+            let opacityVal = 1.0;
+
+            if (part.isProject) {
+              // High-precision landing glide to project coordinates!
+              const proj = projects[part.projectIndex];
+              
+              // Eased smooth transition using the custom spring-damping physics algorithm
+              const tSpring = getSpringWeight(t);
+              
+              // Target coordinates mapped to local rig space coordinates
+              const mapPos = getMapPosFromLatLng(proj.lat, proj.lng);
+              const targetX = (mapPos.x * MAP_SCALE) / currentRigScale;
+              const targetY = mapPos.y / currentRigScale;
+              const targetZ = (mapPos.z * MAP_SCALE) / currentRigScale;
+
+              // Transition gracefully from the physical gravitational path to the exact target coordinate
+              x = THREE.MathUtils.lerp(physX, targetX, tSpring);
+              y = THREE.MathUtils.lerp(physY, targetY, tSpring);
+              z = THREE.MathUtils.lerp(physZ, targetZ, tSpring);
+
+              // Align orientation seamlessly to lie flat on the map blueprint, matching the exact HTML marker rotation at landing
+              const targetRotYVal = THREE.MathUtils.degToRad(getProjectRotation(proj.id));
+              rotXVal = THREE.MathUtils.lerp(part.rotSpeedX * t, -Math.PI / 2, tSpring); 
+              rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, targetRotYVal, tSpring);
+              rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
+
+              // Transition smoothly from 1.3x scale to 1.0x scale as particles settle to map markers
+              finalScale = THREE.MathUtils.lerp(SMALL_SCALE * 1.3, SMALL_SCALE, tSpring);
+
+              // Project marker stays dark/charcoal `#111111`
+              dummyColor.copy(fgColor);
+
+              // Swap instantly at 0.70 to avoid white fade
+              opacityVal = p >= 0.70 ? 0.0 : 1.0;
+            } else {
+              // Ordinary dissolving background particle follows the full simulated gravity track
+              x = physX;
+              y = physY;
+              z = physZ;
+
+              // Spin continuously as they tumble
+              rotXVal = part.rotSpeedX * t;
+              rotYVal = part.rotSpeedY * t;
+              rotZVal = part.rotSpeedZ * t;
+
+              // Shrink completely to zero as it dissolves, starting from 1.3x scale
+              finalScale = (SMALL_SCALE * 1.3) * (1.0 - t * t);
+
+              // Fade to background color matching clean environment
+              const lerpVal = Math.min(1, t * 1.4);
+              dummyColor.copy(fgColor).lerp(bgColor, lerpVal);
+
+              // Gently fade opacity as it dissolves
+              opacityVal = Math.max(0, 1.0 - t * t * 1.3);
+            }
+
+            // Apply opening animation (reversed explosion)
+            if (openingFactor > 0.001) {
+              x += part.driftX * openingFactor * 2.5;
+              y += Math.abs(part.initialVelocityY) * openingFactor * 3.0; 
+              z += part.driftZ * openingFactor * 2.5;
+              
+              rotXVal += part.rotSpeedX * openingFactor;
+              rotYVal += part.rotSpeedY * openingFactor;
+              rotZVal += part.rotSpeedZ * openingFactor;
+              
+              if (openingProgress < 0.2) {
+                opacityVal *= openingProgress / 0.2;
+              }
+            }
+
+            // Build matrix transform for this instance
+            dummyMatrix.makeTranslation(x, y, z);
+            dummyEuler.set(rotXVal, rotYVal, rotZVal);
+            dummyRotMatrix.makeRotationFromEuler(dummyEuler);
+            dummyMatrix.multiply(dummyRotMatrix);
+            dummyScale.set(finalScale, finalScale, finalScale);
+            dummyMatrix.scale(dummyScale);
+
+            mesh.setMatrixAt(i, dummyMatrix);
+            mesh.instanceColor!.setXYZ(i, dummyColor.r, dummyColor.g, dummyColor.b);
+            if (opacityAttr) {
+              opacityAttr.setX(i, opacityVal);
             }
           }
 
-          // Build matrix transform for this instance
-          dummyMatrix.makeTranslation(x, y, z);
-          dummyEuler.set(rotXVal, rotYVal, rotZVal);
-          dummyRotMatrix.makeRotationFromEuler(dummyEuler);
-          dummyMatrix.multiply(dummyRotMatrix);
-          dummyScale.set(finalScale, finalScale, finalScale);
-          dummyMatrix.scale(dummyScale);
-
-          mesh.setMatrixAt(i, dummyMatrix);
-          mesh.instanceColor!.setXYZ(i, dummyColor.r, dummyColor.g, dummyColor.b);
+          mesh.instanceMatrix.needsUpdate = true;
+          if (mesh.instanceColor) {
+            mesh.instanceColor.needsUpdate = true;
+          }
           if (opacityAttr) {
-            opacityAttr.setX(i, opacityVal);
+            opacityAttr.needsUpdate = true;
           }
-        }
-
-        mesh.instanceMatrix.needsUpdate = true;
-        if (mesh.instanceColor) {
-          mesh.instanceColor.needsUpdate = true;
-        }
-        if (opacityAttr) {
-          opacityAttr.needsUpdate = true;
         }
 
         // 16. Update Actual HTML Map Markers
-        projects.forEach((proj, idx) => {
-          const actualMarker = actualMarkersRef.current[idx];
+        projects.forEach((proj) => {
+          const actualMarker = actualMarkersRef.current[proj.id];
           if (!actualMarker) return;
           
-          // Exactly at 0.75, when 3D particles turn opacity=0, the HTML markers turn opacity=1!
-          if (p >= 0.75) {
+          // Instant swap at 0.70 when 3D markers hide
+          if (p >= 0.70) {
             actualMarker.style.opacity = "1";
           } else {
             actualMarker.style.opacity = "0";
           }
         });
         
-        // 16.5 Trigger Auto-Zoom flawlessly
-        if (p >= 0.85 && !autoZoomTriggeredRef.current && !isMapInteractingRef.current) {
-          autoZoomTriggeredRef.current = true;
-          setZoom(getTargetZoom());
-        }
+        // Auto-Zoom flawlessly is now handled directly by the time-sequence block!
+        // We removed the redundant autoZoomTriggeredRef.current block here.
 
         // Update the HTML Map Layer opacity and pointer-events dynamically inside tick
         let mapOpacityVal = 0.0;
-        if (p >= 0.45 && p < 0.70) {
-          mapOpacityVal = (p - 0.45) / 0.25;
-        } else if (p >= 0.70) {
+        if (p >= 0.15 && p < 0.65) {
+          // Fade in map early so it's visible UNDER the particles during the rain
+          mapOpacityVal = Math.pow((p - 0.15) / 0.50, 2); // Ease-in curve
+        } else if (p >= 0.65) {
           mapOpacityVal = 1.0;
         }
 
         if (htmlMapContainerRef.current) {
           htmlMapContainerRef.current.style.opacity = mapOpacityVal.toString();
-          htmlMapContainerRef.current.style.pointerEvents = mapOpacityVal > 0.05 ? "auto" : "none";
+        }
+        if (htmlMapInteractiveWrapperRef.current) {
+          htmlMapInteractiveWrapperRef.current.style.pointerEvents = mapOpacityVal > 0.05 ? "auto" : "none";
         }
       }
 
       // CULLING OPTIMIZATION: Halt completely when 3D is finished!
+      frameData.math = performance.now() - mathStart;
+      const renderStart = performance.now();
       if (p < 0.85) {
         renderer.autoClear = true;
         renderer.render(scene, camera);
       }
+      frameData.render = performance.now() - renderStart;
+      if (diagActive) diagFrames.push(frameData);
     };
 
     tick();
 
+    if (typeof window !== 'undefined') {
+      (window as any).startDiagnostics = startDiagnostics;
+    }
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener("mousemove", handleMouseMove);
@@ -1347,7 +1489,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   };
 
 
-  const isMobileSize = typeof window !== "undefined" && window.innerWidth <= 1024;
+  const isMobileSize = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 767);
   const isCategoriesCollapsed = false;
   
   const displayZoom = zoom;
@@ -1361,7 +1503,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       <div 
         id="blyHBg" 
         ref={containerRef} 
-        className={`absolute inset-0 w-full h-full`}
+        style={{ zIndex: 40, pointerEvents: scrollProgress < 0.65 ? "auto" : "none" }}
+        className={`absolute inset-0 w-full h-full ${scrollProgress < 0.65 ? 'cursor-pointer' : ''}`}
         onClick={() => {
           triggerHaptic();
           if (scrollRef.current < 0.65 && onHClick && typeof window !== "undefined" && window.innerWidth > 1024) {
@@ -1375,32 +1518,46 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         ref={htmlMapContainerRef}
         style={{ 
           pointerEvents: "none",
-          touchAction: "none",
           opacity: 0
         }} 
         className="absolute inset-0 z-30 flex items-center justify-center bg-white transition-opacity duration-300 overflow-hidden select-none"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUpOrLeave}
-        onMouseLeave={handleMouseUpOrLeave}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onDoubleClick={handleDoubleClick}
       >
-        <motion.div
-          className="map-container relative"
+        {/* INTERMEDIATE FIXED WRAPPER for interaction and overflow clipping */}
+        <div
+          ref={htmlMapInteractiveWrapperRef}
+          className="relative overflow-hidden flex items-center justify-center"
           style={{
-            width: isMobileSize ? "calc(100dvh * (2048 / 1270))" : "90vw",
-            height: isMobileSize ? "100dvh" : "auto",
-            aspectRatio: "2048 / 1270",
-            cursor: "none"
+            pointerEvents: "none",
+            touchAction: "none", // Traps touch for map panning, leaving white margins for page scrolling
+            width: "90vw",
+            maxHeight: isMobileSize ? "75dvh" : "none",
           }}
-          animate={{
-            x: pan.x,
-            y: pan.y,
-            scale: displayZoom * MAP_SCALE
-          }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onDoubleClick={handleDoubleClick}
+        >
+          <motion.div
+            className="map-container relative flex-shrink-0"
+            style={{
+              cursor: "none",
+              transformOrigin: "center",
+              width: isMobileSize && typeof window !== "undefined" && window.innerHeight > window.innerWidth 
+                ? "calc(75dvh * (2048 / 1270))" 
+                : "90vw",
+              height: isMobileSize && typeof window !== "undefined" && window.innerHeight > window.innerWidth 
+                ? "75dvh" 
+                : "calc(90vw * (1270 / 2048))"
+            }}
+            animate={{
+              x: pan.x,
+              y: pan.y,
+              scale: displayZoom * MAP_SCALE
+            }}
           transition={
             isDragging 
               ? { type: "tween", duration: 0 } 
@@ -1450,7 +1607,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             </div>
             
             {/* Project Markers rendered above the image */}
-            {projects.filter(proj => typeof proj.lat === 'number' && !isNaN(proj.lat) && typeof proj.lng === 'number' && !isNaN(proj.lng)).map((proj) => {
+            {projects.filter(proj => typeof proj.lat === 'number' && !isNaN(proj.lat) && typeof proj.lng === 'number' && !isNaN(proj.lng)).map((proj, idx) => {
               const coord = coordsState[proj.id];
               const isSelectedDesk = activeProject?.id === proj.id;
               const isSelectedMob = selectedMobileProject?.id === proj.id;
@@ -1458,7 +1615,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const isActive = isTouchDevice ? isSelectedMob : isSelectedDesk;
               if (!coord || !getFilterMatch(proj, activeFilter)) return null;
               
-              const isMobile = typeof window !== "undefined" && window.innerWidth <= 1024;
+              const isMobile = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 767);
               
               // Mobile opacity logic
               const hasMobileSelection = !!selectedMobileProject;
@@ -1478,13 +1635,17 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               return (
                 <div
                   key={proj.id}
+                  ref={(el) => {
+                    if (el) actualMarkersRef.current[proj.id] = el;
+                  }}
                   className={`absolute ${isActive ? 'z-[60]' : 'z-40 hover:z-[60]'} pointer-events-none project-marker ${opacity} transition-opacity duration-300`}
                   style={{
                     position: "absolute",
                     left: `${coord.xPercent}%`,
                     top: `${coord.yPercent}%`,
                     width: "0px",
-                    height: "0px"
+                    height: "0px",
+                    opacity: 0 // Default to invisible until p >= 0.70 in tick()
                   }}
                 >
                   <motion.div
@@ -1513,7 +1674,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                         }
                         e.stopPropagation();
                         
-                        const isMobile = window.innerWidth <= 1024;
+                        const isMobile = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 767);
                         if (isMobile) {
                           if (selectedMobileProject?.id === proj.id) {
                             setSelectedMobileProject(null);
@@ -1603,6 +1764,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               );
             })}
           </motion.div>
+        </div>
 
           {/* White Fade Overlays fixed to the screen edges to provide a permanent soft vignette over the map */}
           <div className="absolute inset-x-0 top-0 h-[5%] bg-gradient-to-b from-white to-transparent pointer-events-none z-50" />

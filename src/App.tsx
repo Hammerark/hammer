@@ -241,9 +241,8 @@ export default function App() {
     let startTime: number | null = null;
     isAutoScrollingRef.current = true;
 
-    // Linear easing ensures a constant, steady speed, making it blatantly clear it's automated
-    // The ThreeCanvas internal lerp will naturally soften the start and stop.
-    const linearEase = (t: number) => t;
+    // Ultra-smooth sine easing ensures it doesn't jerk/stutter at start and end
+    const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 
     const animateScroll = (currentTime: number) => {
       if (startTime === null) startTime = currentTime;
@@ -251,7 +250,7 @@ export default function App() {
       const progress = Math.min(timeElapsed / duration, 1);
 
       window.requestAnimationFrame(() => {
-        window.scrollTo(0, startScrollY + distance * linearEase(progress));
+        window.scrollTo(0, startScrollY + distance * easeInOutSine(progress));
       });
 
       if (timeElapsed < duration) {

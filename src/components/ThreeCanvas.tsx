@@ -286,6 +286,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       autoZoomTimeoutRef.current = setTimeout(() => {
         if (!isMapInteractingRef.current) {
           setZoom(getTargetZoom());
+          // Move viewpoint 20% upwards on the map (which means panning the map downwards on the screen)
+          setPan(prev => ({ ...prev, y: typeof window !== "undefined" ? window.innerHeight * 0.20 : 0 }));
         }
       }, 0);
     }
@@ -866,7 +868,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const ny = ((e.touches[0].clientY - r.top) / r.height) * 2 - 1;
       
       const decay = Math.max(0, 1 - scrollRef.current * 3);
-      const maxTilt = 0.20 * decay; // Slightly larger tilt area for touch
+      const maxTilt = 0.15 * decay; // Reduced by another 25% // Slightly larger tilt area for touch
       targetRotY = nx * maxTilt;
       targetRotX = -ny * maxTilt;
     };
@@ -884,7 +886,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const ny = ((e.touches[0].clientY - r.top) / r.height) * 2 - 1;
       
       const decay = Math.max(0, 1 - scrollRef.current * 3);
-      const maxTilt = 0.20 * decay; 
+      const maxTilt = 0.15 * decay; // Reduced by another 25% 
       targetRotY = nx * maxTilt;
       targetRotX = -ny * maxTilt;
     };
@@ -910,7 +912,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const diffGamma = e.gamma - initialGamma;
 
       const decay = Math.max(0, 1 - scrollRef.current * 3);
-      const maxTilt = 0.20 * decay; // Expressive controlled motion
+      const maxTilt = 0.15 * decay; // Reduced by another 25% // Expressive controlled motion
 
       const deltaBeta = THREE.MathUtils.clamp(diffBeta, -20, 20);
       const deltaGamma = THREE.MathUtils.clamp(diffGamma, -20, 20);

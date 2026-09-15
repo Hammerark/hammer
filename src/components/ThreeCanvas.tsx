@@ -280,14 +280,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       setPan({ x: 0, y: 0 });
       setIsMapInteracting(false);
       if (autoZoomTimeoutRef.current) clearTimeout(autoZoomTimeoutRef.current);
-    } else if (scrollProgress >= 0.99 && !isMapInteractingRef.current) {
-      // Delay auto-zoom until H-rain has landed (3.5s total, wait 2.5s here)
+    } else if (scrollProgress >= 0.88 && !isMapInteractingRef.current) {
+      // Trigger auto-zoom seamlessly as part of the landing animation
       if (autoZoomTimeoutRef.current) clearTimeout(autoZoomTimeoutRef.current);
       autoZoomTimeoutRef.current = setTimeout(() => {
         if (!isMapInteractingRef.current) {
           setZoom(getTargetZoom());
         }
-      }, 2500);
+      }, 1000);
     }
   }, [scrollProgress]);
 
@@ -866,7 +866,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const ny = ((e.touches[0].clientY - r.top) / r.height) * 2 - 1;
       
       const decay = Math.max(0, 1 - scrollRef.current * 3);
-      const maxTilt = 0.35 * decay; // Slightly larger tilt area for touch
+      const maxTilt = 0.20 * decay; // Slightly larger tilt area for touch
       targetRotY = nx * maxTilt;
       targetRotX = -ny * maxTilt;
     };
@@ -884,7 +884,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const ny = ((e.touches[0].clientY - r.top) / r.height) * 2 - 1;
       
       const decay = Math.max(0, 1 - scrollRef.current * 3);
-      const maxTilt = 0.35 * decay; 
+      const maxTilt = 0.20 * decay; 
       targetRotY = nx * maxTilt;
       targetRotX = -ny * maxTilt;
     };
@@ -910,7 +910,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const diffGamma = e.gamma - initialGamma;
 
       const decay = Math.max(0, 1 - scrollRef.current * 3);
-      const maxTilt = 0.35 * decay; // Expressive controlled motion
+      const maxTilt = 0.20 * decay; // Expressive controlled motion
 
       const deltaBeta = THREE.MathUtils.clamp(diffBeta, -20, 20);
       const deltaGamma = THREE.MathUtils.clamp(diffGamma, -20, 20);
@@ -1326,9 +1326,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
         // Update the HTML Map Layer opacity and pointer-events dynamically inside tick
         let mapOpacityVal = 0.0;
-        if (p >= 0.78 && p < 0.85) {
-          mapOpacityVal = (p - 0.65) / 0.06;
-        } else if (p >= 0.85) {
+        if (p >= 0.50 && p < 0.75) {
+          mapOpacityVal = (p - 0.50) / 0.25;
+        } else if (p >= 0.75) {
           mapOpacityVal = 1.0;
         }
 

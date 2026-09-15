@@ -448,7 +448,7 @@ export default function App() {
               </AnimatePresence>
 
               {/* Master Scroll Track driving the WebGL disintegration story */}
-              <div ref={scrollTrackRef} className="relative h-[115vh] md:h-[160vh] w-full">
+              <div ref={scrollTrackRef} className="relative h-[140vh] md:h-[180vh] w-full">
                 {/* Sticky WebGL viewport */}
                 <div className="sticky top-0 left-0 w-full h-screen overflow-hidden z-20 bg-white">
                   <ThreeCanvas 

@@ -132,7 +132,7 @@ export default function App() {
       }
 
       // Check for auto-start animation
-      if (scrollProgress < 0.05) {
+      if (scrollProgress < 0.80) {
         let isScrollingDown = false;
         if (e.type === "wheel") {
           isScrollingDown = (e as WheelEvent).deltaY > 0;
@@ -230,15 +230,14 @@ export default function App() {
     // trackHeight is the total scrollable area for this track
     const trackHeight = rect.height - window.innerHeight;
     
-    // We want scrollProgress = 0.85 to show the fully opaque interactive map
-    // scrollProgress = relativeScroll / trackHeight
-    const targetScrollY = 0.85 * trackHeight;
+    // Fully automated scroll to the very end of the track (1.0)
+    // This triggers the full cinematic sequence: explosion -> rain -> map fade -> auto-zoom
+    const targetScrollY = 1.0 * trackHeight;
     const startScrollY = window.scrollY;
     const distance = targetScrollY - startScrollY;
     
-    // Native smooth scroll is usually ~500ms.
-    // To reduce animation speed by 35%, new duration = 819 / 0.65 = 1260
-    const duration = 1260;
+    // Elegant, cinematic duration
+    const duration = 2400;
     let startTime: number | null = null;
     isAutoScrollingRef.current = true;
 

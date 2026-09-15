@@ -183,10 +183,21 @@ export default function App() {
             const relativeScroll = -rect.top;
             const progress = Math.min(Math.max(0, relativeScroll / trackHeight), 1);
             
-            setScrollProgress(progress);
-            
             // Share progress globally so high-performance animation frames can access it without lag
             (window as any).hammerScrollProgress = progress;
+            
+            // Throttle React state updates to prevent massive DOM re-render stuttering during scroll
+            setScrollProgress((prev) => {
+              const hasCrossed005 = (prev < 0.05 && progress >= 0.05) || (prev >= 0.05 && progress < 0.05);
+              const hasCrossed010 = (prev < 0.10 && progress >= 0.10) || (prev >= 0.10 && progress < 0.10);
+              const hasCrossed078 = (prev < 0.78 && progress >= 0.78) || (prev >= 0.78 && progress < 0.78);
+              const hasCrossed088 = (prev < 0.88 && progress >= 0.88) || (prev >= 0.88 && progress < 0.88);
+              
+              if (hasCrossed005 || hasCrossed010 || hasCrossed078 || hasCrossed088 || Math.abs(prev - progress) > 0.2) {
+                return progress;
+              }
+              return prev;
+            });
           }
           ticking = false;
         });

@@ -109,7 +109,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => 1.40 * 1.35; // Increased by 35%
+  const getTargetZoom = () => 1.40 * 1.25; // Increased by 25%
   const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 8.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
@@ -286,8 +286,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       autoZoomTimeoutRef.current = setTimeout(() => {
         if (!isMapInteractingRef.current) {
           setZoom(getTargetZoom());
-          // Move viewpoint 20% upwards on the map (which means panning the map downwards on the screen)
-          setPan(prev => ({ ...prev, y: typeof window !== "undefined" ? window.innerHeight * 0.20 : 0 }));
         }
       }, 0);
     }

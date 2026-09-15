@@ -38,6 +38,14 @@ export default function App() {
   const [nextPage, setNextPage] = useState<PageId | null>(null);
 
   useEffect(() => {
+    if (activePage === "hjem") {
+      document.body.classList.add('no-scrollbar');
+    } else {
+      document.body.classList.remove('no-scrollbar');
+    }
+  }, [activePage]);
+
+  useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 767);
     };
@@ -132,7 +140,7 @@ export default function App() {
       }
 
       // Check for auto-start animation
-      if (scrollProgress < 0.80) {
+      if (scrollProgress < 0.95) {
         let isScrollingDown = false;
         if (e.type === "wheel") {
           isScrollingDown = (e as WheelEvent).deltaY > 0;

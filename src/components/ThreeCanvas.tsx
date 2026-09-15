@@ -109,7 +109,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => 1.40 * 1.25; // Increased by 25%
+  const getTargetZoom = () => 1.40 * 1.50; // Increased by 50%
   const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 8.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer

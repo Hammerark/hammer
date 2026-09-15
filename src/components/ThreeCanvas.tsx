@@ -505,8 +505,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   // State to track raw point calculations
   const [points] = useState<{ x: number; y: number }[]>(() => {
     const pts: { x: number; y: number }[] = [];
-    const cols = 14;
-    const rows = 12;
+    
+    // Universal grid for all platforms
+    // Roughly 864 particles total (36 * 24), which is standard mobile size
+    const cols = 36;
+    const rows = 24;
     const stepX = W / cols;
     const stepY = H / rows;
 
@@ -526,8 +529,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   useEffect(() => {
     if (!containerRef.current || points.length === 0) return;
 
-    let width = containerRef.current.clientWidth;
-    let height = containerRef.current.clientHeight;
+    let width = containerRef.current.clientWidth || window.innerWidth;
+    let height = containerRef.current.clientHeight || window.innerHeight;
+    
+    // Prevent zero dimension NaN crash on Safari/Tablet
+    if (width === 0) width = 1024;
+    if (height === 0) height = 768;
 
     // 1. Renderer Creator
     const renderer = new THREE.WebGLRenderer({
@@ -988,8 +995,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // Handle resizing
     const resize = () => {
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
-      width = containerRef.current.clientWidth;
-      height = containerRef.current.clientHeight;
+      width = containerRef.current.clientWidth || window.innerWidth;
+      height = containerRef.current.clientHeight || window.innerHeight;
+      
+      if (width === 0 || height === 0) return;
       
       rendererRef.current.setSize(width, height);
       cameraRef.current.aspect = width / height;
@@ -1308,9 +1317,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           }
 
           // Convert to pixels on screen and apply a clear translation offset shift from 0, 0 to -50%, -50% to center markers perfectly
-          markerEl.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%)`;
-          markerEl.style.opacity = opacity.toString();
-          markerEl.style.pointerEvents = "auto";
+          const transformStr = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%)`;
+          if (markerEl.style.transform !== transformStr) markerEl.style.transform = transformStr;
+          
+          const opacityStr = opacity.toString();
+          if (markerEl.style.opacity !== opacityStr) markerEl.style.opacity = opacityStr;
+          
+          if (markerEl.style.pointerEvents !== "auto") markerEl.style.pointerEvents = "auto";
         });
 
         // Update the HTML Map Layer opacity and pointer-events dynamically inside tick

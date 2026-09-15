@@ -109,7 +109,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => 1.25;
+  const getTargetZoom = () => 1.40;
   const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 5.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
@@ -150,6 +150,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const [isMoved, setIsMoved] = useState(false);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const isMapInteractingRef = useRef(isMapInteracting);
+  const autoZoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     isMapInteractingRef.current = isMapInteracting;
   }, [isMapInteracting]);
@@ -278,8 +279,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       setZoom(getBaseZoom());
       setPan({ x: 0, y: 0 });
       setIsMapInteracting(false);
-    } else if (scrollProgress >= 0.85 && !isMapInteractingRef.current) {
-      setZoom(getTargetZoom());
+      if (autoZoomTimeoutRef.current) clearTimeout(autoZoomTimeoutRef.current);
+    } else if (scrollProgress >= 0.99 && !isMapInteractingRef.current) {
+      // Delay auto-zoom until H-rain has landed (3.5s total, wait 2.5s here)
+      if (autoZoomTimeoutRef.current) clearTimeout(autoZoomTimeoutRef.current);
+      autoZoomTimeoutRef.current = setTimeout(() => {
+        if (!isMapInteractingRef.current) {
+          setZoom(getTargetZoom());
+        }
+      }, 2500);
     }
   }, [scrollProgress]);
 
@@ -1413,10 +1421,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const isMobileSize = typeof window !== "undefined" && window.innerWidth <= 1024;
   const isCategoriesCollapsed = false;
   
-  // Calculate a fully seamless automatic zoom based purely on scroll progress if not interacting
-  const displayZoom = (!isMapInteractingRef.current && scrollProgress >= 0.85) 
-    ? 1.0 + (getTargetZoom() - 1.0) * Math.min(1.0, (scrollProgress - 0.85) / 0.15)
-    : zoom;
+  const displayZoom = zoom;
 
   return (
 
@@ -1457,10 +1462,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         <motion.div
           className="map-container relative"
           style={{
-            width: isMobileSize ? "auto" : "90vw",
+            width: isMobileSize ? "calc(100dvh * (2048 / 1270))" : "90vw",
             height: isMobileSize ? "100dvh" : "auto",
             aspectRatio: "2048 / 1270",
-            cursor: isMapInteracting ? (isDragging ? "grabbing" : "grab") : "zoom-in"
+            cursor: "none"
           }}
           animate={{
             x: pan.x,
@@ -1515,8 +1520,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               {/* White Fade Overlays for the 4 edges */}
               <div className="absolute inset-x-0 top-0 h-[5%] bg-gradient-to-b from-white to-transparent pointer-events-none" />
               <div className="absolute inset-x-0 bottom-0 h-[5%] bg-gradient-to-t from-white to-transparent pointer-events-none" />
-              <div className="absolute inset-y-0 left-0 w-[5%] bg-gradient-to-r from-white to-transparent pointer-events-none" />
-              <div className="absolute inset-y-0 right-0 w-[5%] bg-gradient-to-l from-white to-transparent pointer-events-none" />
+              <div className="absolute inset-y-0 left-0 w-[20%] bg-gradient-to-r from-white to-transparent pointer-events-none" />
+              <div className="absolute inset-y-0 right-0 w-[20%] bg-gradient-to-l from-white to-transparent pointer-events-none" />
             </div>
             
             {/* Project Markers rendered above the image */}
@@ -1524,16 +1529,17 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const coord = coordsState[proj.id];
               const isSelectedDesk = activeProject?.id === proj.id;
               const isSelectedMob = selectedMobileProject?.id === proj.id;
-              const isActive = isMobileSize ? isSelectedMob : isSelectedDesk;
+              const isTouchDevice = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 1024);
+              const isActive = isTouchDevice ? isSelectedMob : isSelectedDesk;
               if (!coord || !getFilterMatch(proj, activeFilter)) return null;
               
               const isMobile = typeof window !== "undefined" && window.innerWidth <= 1024;
               
               // Mobile opacity logic
               const hasMobileSelection = !!selectedMobileProject;
-              const opacity = isMobile && hasMobileSelection && !isSelectedMob ? "opacity-20" : "opacity-100";
+              const opacity = isTouchDevice && hasMobileSelection && !isSelectedMob ? "opacity-20" : "opacity-100";
               
-              const markerScale = isMobile ? 
+              const markerScale = isTouchDevice ? 
                 (isSelectedMob ? 2.346 : 1.38) * (0.6 / displayZoom) * (0.75 + Math.max(0, displayZoom - 3.15) / (18.0 - 3.15) * 0.25) :
                 (0.4 + 0.6 / displayZoom) * 0.8;
                 
@@ -1604,7 +1610,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                         isDragModeEnabled 
                           ? "cursor-grab active:cursor-grabbing" 
                           : "cursor-default"
-                      } ${isMobile ? "w-[24px] h-[24px] -left-[12px] -top-[12px]" : "w-[16px] h-[16px] -left-[8px] -top-[8px]"}`}
+                      } ${isTouchDevice ? "w-[24px] h-[24px] -left-[12px] -top-[12px]" : "w-[16px] h-[16px] -left-[8px] -top-[8px]"}`}
                     >
                       <div 
                         className="pointer-events-none flex items-center justify-center transition-transform duration-300 ease-out absolute inset-0"
@@ -1638,7 +1644,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                               transformOrigin: "bottom center",
                               marginBottom: `${16 / (displayZoom * markerScale)}px`
                             }}
-                            className={`flex flex-col w-48 absolute bottom-full left-1/2 pointer-events-none z-50 ${isMobileSize && selectedMobileProject?.id !== proj.id ? 'hidden' : ''}`}
+                            className={`flex flex-col w-48 absolute bottom-full left-1/2 pointer-events-none z-50 ${isTouchDevice && selectedMobileProject?.id !== proj.id ? 'hidden' : ''}`}
                           >
                             <div className={`relative w-full font-sans tracking-widest text-neutral-900 overflow-visible origin-bottom
                             opacity-0 group-hover:opacity-100

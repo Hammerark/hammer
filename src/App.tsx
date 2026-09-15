@@ -9,6 +9,7 @@ import { triggerHaptic } from "./utils";
 import { ProjectDrawer } from "./components/ProjectDrawer";
 import { Footer } from "./components/Footer";
 
+import { CustomCursor } from "./components/CustomCursor";
 import { Project } from "./data/projects";
 import { ChevronDown, ChevronUp, MapPin, Phone, Mail, Instagram } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -92,9 +93,9 @@ export default function App() {
                 const th = rect.height - window.innerHeight;
                 if (th > 0) {
                     window.requestAnimationFrame(() => {
-                        window.scrollTo({ top: 0.85 * th, left: 0, behavior: "auto" });
+                        window.scrollTo({ top: 1.0 * th, left: 0, behavior: "auto" });
                     });
-                    setScrollProgress(0.85);
+                    setScrollProgress(1.0);
                     skipAnimationScrollRef.current = false;
                     return;
                 }
@@ -273,9 +274,9 @@ export default function App() {
           const th = rect.height - window.innerHeight;
           if (th > 0) {
             window.requestAnimationFrame(() => {
-              window.scrollTo({ top: 0.85 * th, left: 0, behavior: "auto" });
+              window.scrollTo({ top: 1.0 * th, left: 0, behavior: "auto" });
             });
-            setScrollProgress(0.85);
+            setScrollProgress(1.0);
           }
         }
       } else {

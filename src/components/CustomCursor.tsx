@@ -133,15 +133,15 @@ export const CustomCursor: React.FC = () => {
       <motion.div
         className={`fixed top-0 left-0 pointer-events-none z-[10000] hidden md:flex items-center justify-center overflow-visible ${isMagnetMenu ? "" : "mix-blend-difference"}`}
         animate={{
-          x: mousePosition.x - 2.5,
-          y: mousePosition.y - 2.5,
+          x: mousePosition.x - 4,
+          y: mousePosition.y - 4,
           opacity: isVisible ? 1 : 0,
           scale: isClicking ? 0.6 : (isMagnetMenu ? 1 : (isHovering ? 1.5 : 1)),
         }}
         transition={{ type: "spring", stiffness: 800, damping: 35, mass: 0.2 }}
         style={{
-          width: 5,
-          height: 5,
+          width: 8,
+          height: 8,
           borderRadius: "50%",
           backgroundColor: isMagnetMenu ? "black" : "white",
         }}

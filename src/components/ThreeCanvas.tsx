@@ -109,7 +109,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 2.5 : 2.5;
+  const getTargetZoom = () => 1.25;
   const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 5.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
@@ -1020,8 +1020,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const currentTime = performance.now();
       if (startTime === null) startTime = currentTime;
       const elapsedTime = currentTime - startTime;
-      const openingProgress = Math.min(1.0, elapsedTime / 2500); // 2.5s duration for a beautiful, long explosion effect
-      const openingFactor = Math.pow(1.0 - openingProgress, 3); // easeOutCubic
+      const openingProgress = Math.min(1.0, elapsedTime / 3500); // 3.5s duration for velvet soft landing
+      const easeOutExpo = openingProgress === 1.0 ? 1.0 : 1.0 - Math.pow(2, -10 * openingProgress);
+      const openingFactor = 1.0 - easeOutExpo;
 
       const rawP = (window as any).hammerScrollProgress !== undefined 
         ? (window as any).hammerScrollProgress 
@@ -1453,7 +1454,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           transition={
             isDragging 
               ? { type: "tween", duration: 0 } 
-              : { type: "tween", duration: 0.4, ease: "easeOut" }
+              : { type: "tween", duration: isMapInteracting ? 0.4 : 1.5, ease: "easeInOut" }
           }
           onClick={(e) => {
             if (isDragModeEnabled || isMoved) return;

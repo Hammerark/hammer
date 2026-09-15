@@ -1060,8 +1060,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       if (isMobile) {
         if (!hasRequestedMotionRef.current && p < 0.1) {
           // Floating animation (more noticeable to indicate 3D nature)
-          floatX = Math.sin(elapsedTime * 0.002) * 0.075;
-          floatY = Math.cos(elapsedTime * 0.0015) * 0.075;
+          // Reduced amplitude by 25% for a more elegant, subtle hint
+          floatX = Math.sin(elapsedTime * 0.002) * 0.056;
+          floatY = Math.cos(elapsedTime * 0.0015) * 0.056;
         }
       }
 

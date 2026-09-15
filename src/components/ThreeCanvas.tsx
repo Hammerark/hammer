@@ -1044,9 +1044,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       if (isMobile) {
         if (!hasRequestedMotionRef.current && p < 0.1) {
           // Floating animation (more noticeable to indicate 3D nature)
-          // Reduced amplitude by 25% for a more elegant, subtle hint
-          floatX = Math.sin(elapsedTime * 0.002) * 0.056;
-          floatY = Math.cos(elapsedTime * 0.0015) * 0.056;
+          // Smoothly fade out the idle animation to prevent a sudden snap/shake at p=0.1
+          const fadeOut = Math.max(0, 1.0 - p * 10.0);
+          floatX = Math.sin(elapsedTime * 0.002) * 0.056 * fadeOut;
+          floatY = Math.cos(elapsedTime * 0.0015) * 0.056 * fadeOut;
         }
       }
 
@@ -1266,7 +1267,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
         // 16. Update HTML labels on screen
         // We project the 3D mapPos coordinates of our 8 projects into 2D viewport coordinates
-        const canvasRect = renderer.domElement.getBoundingClientRect();
+        const canvasWidth = state.size.width;
+        const canvasHeight = state.size.height;
         
         projects.forEach((proj, idx) => {
           const markerEl = markersRef.current[idx];
@@ -1294,8 +1296,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           targetVec.project(camera);
 
           // Convert to pixels on screen
-          const screenX = (targetVec.x * 0.5 + 0.5) * canvasRect.width;
-          const screenY = (-targetVec.y * 0.5 + 0.5) * canvasRect.height;
+          const screenX = (targetVec.x * 0.5 + 0.5) * canvasWidth;
+          const screenY = (-targetVec.y * 0.5 + 0.5) * canvasHeight;
 
           // Fade markers in and out beautifully based on scroll progress
           let opacity = 0.0;

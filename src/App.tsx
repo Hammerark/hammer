@@ -241,8 +241,9 @@ export default function App() {
     let startTime: number | null = null;
     isAutoScrollingRef.current = true;
 
-    // Easing: easeOutCubic starts very fast (responsive click) then decelerates gracefully for a glorious explosion
-    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+    // Linear easing ensures a constant, steady speed, making it blatantly clear it's automated
+    // The ThreeCanvas internal lerp will naturally soften the start and stop.
+    const linearEase = (t: number) => t;
 
     const animateScroll = (currentTime: number) => {
       if (startTime === null) startTime = currentTime;
@@ -250,7 +251,7 @@ export default function App() {
       const progress = Math.min(timeElapsed / duration, 1);
 
       window.requestAnimationFrame(() => {
-        window.scrollTo(0, startScrollY + distance * easeOutCubic(progress));
+        window.scrollTo(0, startScrollY + distance * linearEase(progress));
       });
 
       if (timeElapsed < duration) {

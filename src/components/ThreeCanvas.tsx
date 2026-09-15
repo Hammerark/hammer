@@ -109,7 +109,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => 1.40;
+  const getTargetZoom = () => 1.40 * 1.35; // Increased by 35%
   const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 8.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
@@ -280,14 +280,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       setPan({ x: 0, y: 0 });
       setIsMapInteracting(false);
       if (autoZoomTimeoutRef.current) clearTimeout(autoZoomTimeoutRef.current);
-    } else if (scrollProgress >= 0.88 && !isMapInteractingRef.current) {
-      // Trigger auto-zoom seamlessly as part of the landing animation
+    } else if (scrollProgress >= 0.78 && !isMapInteractingRef.current) {
+      // Trigger auto-zoom seamlessly WHILE the map is fading in, creating a perfectly continuous motion with NO stop
       if (autoZoomTimeoutRef.current) clearTimeout(autoZoomTimeoutRef.current);
       autoZoomTimeoutRef.current = setTimeout(() => {
         if (!isMapInteractingRef.current) {
           setZoom(getTargetZoom());
         }
-      }, 1000);
+      }, 0);
     }
   }, [scrollProgress]);
 

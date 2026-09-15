@@ -981,6 +981,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     window.addEventListener("deviceorientation", handleDeviceOrientation, { passive: true });
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data && e.data.type === 'deviceorientation') {
+        handleDeviceOrientation({ beta: e.data.beta, gamma: e.data.gamma } as any);
+      }
+    };
+    
+    window.addEventListener("message", handleMessage);
     window.addEventListener("touchmove", handleTouchMoveTilt, { passive: true });
     window.addEventListener("touchstart", handleTouchStartTilt, { passive: true });
 
@@ -1358,9 +1365,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("deviceorientation", handleDeviceOrientation);
+      window.removeEventListener("message", handleMessage);
       window.removeEventListener("touchmove", handleTouchMoveTilt);
       window.removeEventListener("touchstart", handleTouchStartTilt);
       window.removeEventListener("deviceorientation", handleDeviceOrientation);
+      window.removeEventListener("message", handleMessage);
       window.removeEventListener("click", initDeviceOrientationClick);
       window.removeEventListener("touchstart", initDeviceOrientationTouch);
       window.removeEventListener("resize", resize);

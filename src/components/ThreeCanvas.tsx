@@ -561,20 +561,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     scene.fog = new THREE.FogExp2("#ffffff", 0.02);
     sceneRef.current = scene;
 
-    // 2b. Motion blur post-processing setup
-    const blurScene = new THREE.Scene();
-    const blurMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      depthWrite: false,
-      depthTest: false,
-      opacity: 1.0
-    });
-    const blurGeo = new THREE.PlaneGeometry(2, 2);
-    const blurQuad = new THREE.Mesh(blurGeo, blurMat);
-    blurScene.add(blurQuad);
-    const blurCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
     // 3. Camera setup
     const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
     // Initial camera placement for the elegant letter H - centered at Y=0
@@ -1339,31 +1325,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
 
-      // Dynamic post-processing motion blur based on scroll velocity
-      const scrollVelocity = Math.abs(rawP - smoothProgress) / Math.max(0.001, dt);
-      
-      // Determine clear alpha. If velocity is high, use lower opacity (longer trail).
-      // Scale scrollVelocity mapping so it feels incredibly responsive.
-      const velocityScale = 1.6;
-      const minOpacity = 0.45; // minimum clear alpha for dramatic long trails
-      const clearAlpha = THREE.MathUtils.clamp(
-        1.0 - Math.min(1.0, scrollVelocity * velocityScale) * (1.0 - minOpacity),
-        minOpacity,
-        1.0
-      );
-
-      if (p < 0.65) {
-        // Disable autoClear so previous frames are preserved and blended
-        renderer.autoClear = false;
-
-        // Draw the full-screen semi-transparent quad to progressively sweep/wipe the previous frame
-        blurMat.opacity = clearAlpha;
-        renderer.render(blurScene, blurCam);
-      } else {
-        // Map Phase: Completely sharp, no motion blur, no ghosting
-        renderer.autoClear = true;
-        renderer.clear();
-      }
+      // Standard rendering without manual clear since autoClear is enabled
+      renderer.autoClear = true;
 
       renderer.render(scene, camera);
     };
@@ -1679,8 +1642,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           {/* White Fade Overlays fixed to the screen edges to provide a permanent soft vignette over the map */}
           <div className="absolute inset-x-0 top-0 h-[5%] bg-gradient-to-b from-white to-transparent pointer-events-none z-50" />
           <div className="absolute inset-x-0 bottom-0 h-[5%] bg-gradient-to-t from-white to-transparent pointer-events-none z-50" />
-          <div className="absolute inset-y-0 left-0 w-[15%] md:w-[20%] bg-gradient-to-r from-white to-transparent pointer-events-none z-50" />
-          <div className="absolute inset-y-0 right-0 w-[15%] md:w-[20%] bg-gradient-to-l from-white to-transparent pointer-events-none z-50" />
+          <div className="absolute inset-y-0 left-0 w-[10%] bg-gradient-to-r from-white to-transparent pointer-events-none z-50" />
+          <div className="absolute inset-y-0 right-0 w-[10%] bg-gradient-to-l from-white to-transparent pointer-events-none z-50" />
 
           {/* Sleek Minimalist Architectural Map Controls Panel */}
           <div className={`hidden absolute bottom-8 right-8 z-40 flex flex-col gap-2 items-center ${scrollProgress < 0.65 ? "pointer-events-none" : "pointer-events-auto"} ${isMobileSize && selectedMobileProject ? "hidden" : ""} select-none`}>

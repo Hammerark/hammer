@@ -110,7 +110,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
   const getBaseZoom = () => 1.0;
   const getTargetZoom = () => 1.40;
-  const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 5.0 : 6.0;
+  const getMaxZoom = () => typeof window !== "undefined" && window.innerWidth <= 1024 ? 8.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
   const [zoom, setZoom] = useState(getBaseZoom());
@@ -1539,8 +1539,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const hasMobileSelection = !!selectedMobileProject;
               const opacity = isTouchDevice && hasMobileSelection && !isSelectedMob ? "opacity-20" : "opacity-100";
               
+              const baseScale = isTouchDevice ? (isSelectedMob ? 3.0 : 2.0) : 0.8;
               const markerScale = isTouchDevice ? 
-                (isSelectedMob ? 2.346 : 1.38) * (0.6 / displayZoom) * (0.75 + Math.max(0, displayZoom - 3.15) / (18.0 - 3.15) * 0.25) :
+                baseScale * (1.4 / displayZoom) :
                 (0.4 + 0.6 / displayZoom) * 0.8;
                 
               // Perfectly invert the map zoom and marker scale so the tooltip is exactly its base CSS size on screen.

@@ -2,23 +2,33 @@ import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
 
 export const CustomCursor: React.FC = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState({ x: -100, y: -100 });
   const [isHovering, setIsHovering] = useState(false);
   const [isMagnetMenu, setIsMagnetMenu] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isClicking, setIsClicking] = useState(false);
 
   useEffect(() => {
-    // Only run on non-touch devices
-    if (window.matchMedia("(pointer: coarse)").matches) return;
+    let isTouchMode = false;
+
+    const handleTouch = () => {
+      isTouchMode = true;
+      setIsVisible(false);
+    };
 
     const updateMousePosition = (e: MouseEvent) => {
+      if (isTouchMode) {
+        // If we get a real mouse movement after a touch, switch back to mouse mode
+        // but simple taps also fire a fake mousemove, so we check for movement
+        if (e.movementX === 0 && e.movementY === 0) return;
+        isTouchMode = false;
+      }
+
       let targetPos = { x: e.clientX, y: e.clientY };
       
       const target = e.target as HTMLElement;
       let shouldHide = !!target.closest(".hide-custom-cursor");
       
-      // Also check element from point in case e.target is stale from a delayed click
       const elFromPoint = document.elementFromPoint(e.clientX, e.clientY);
       if (elFromPoint) {
         if (elFromPoint.closest(".hide-custom-cursor")) shouldHide = true;
@@ -44,7 +54,7 @@ export const CustomCursor: React.FC = () => {
             const iconRect = icon.getBoundingClientRect();
             targetPos = { 
               x: iconRect.left + iconRect.width / 2, 
-              y: iconRect.bottom - 4 // Tucks right into the ChevronUp shape
+              y: iconRect.bottom - 4
             };
           } else {
             targetPos = { x: rect.left + rect.width / 2, y: rect.bottom };
@@ -52,15 +62,9 @@ export const CustomCursor: React.FC = () => {
         } else {
           const centerX = rect.left + rect.width / 2;
           const centerY = rect.top + rect.height / 2;
-          // The menu icon is 32x32 inside this element. 
-          // We want the 4th dot of the circle to be at the bottom-right of the square (x=+5, y=+5 from center)
           const magnetX = centerX + 5;
           const magnetY = centerY + 5;
-          // Hard snap completely
-          targetPos = { 
-            x: magnetX, 
-            y: magnetY
-          };
+          targetPos = { x: magnetX, y: magnetY };
         }
       } else {
         setIsMagnetMenu(false);
@@ -70,14 +74,14 @@ export const CustomCursor: React.FC = () => {
     };
 
     const handleDelayedUpdate = (e: MouseEvent) => {
-      // Small delays to allow React to update the DOM classes
+      if (isTouchMode) return;
       setTimeout(() => updateMousePosition(e), 10);
       setTimeout(() => updateMousePosition(e), 50);
     };
 
     const handleMouseOver = (e: MouseEvent) => {
+      if (isTouchMode) return;
       const target = e.target as HTMLElement;
-      
       const computedCursor = window.getComputedStyle(target).cursor;
       
       if (
@@ -99,9 +103,10 @@ export const CustomCursor: React.FC = () => {
     };
 
     const handleMouseLeave = () => setIsVisible(false);
-    const handleMouseDown = () => setIsClicking(true);
+    const handleMouseDown = () => { if (!isTouchMode) setIsClicking(true); };
     const handleMouseUp = () => setIsClicking(false);
 
+    window.addEventListener("touchstart", handleTouch, { passive: true });
     window.addEventListener("mousemove", updateMousePosition, { passive: true });
     window.addEventListener("mouseover", handleMouseOver, { passive: true });
     document.addEventListener("mouseleave", handleMouseLeave);
@@ -110,6 +115,7 @@ export const CustomCursor: React.FC = () => {
     window.addEventListener("click", handleDelayedUpdate);
 
     return () => {
+      window.removeEventListener("touchstart", handleTouch);
       window.removeEventListener("mousemove", updateMousePosition);
       window.removeEventListener("mouseover", handleMouseOver);
       document.removeEventListener("mouseleave", handleMouseLeave);
@@ -127,11 +133,14 @@ export const CustomCursor: React.FC = () => {
             cursor: none !important;
           }
         }
+        /* Fallback for safety */
+        .map-container, .map-container * {
+          cursor: none !important;
+        }
       `}</style>
       
-      {/* Minimal Dot Cursor */}
       <motion.div
-        className={`fixed top-0 left-0 pointer-events-none z-[10000] hidden md:flex items-center justify-center overflow-visible `}
+        className={`fixed top-0 left-0 pointer-events-none z-[10000] flex items-center justify-center overflow-visible `}
         animate={{
           x: mousePosition.x - 4,
           y: mousePosition.y - 4,
@@ -144,6 +153,9 @@ export const CustomCursor: React.FC = () => {
           height: 8,
           borderRadius: "50%",
           backgroundColor: "#111111",
+          position: "fixed",
+          pointerEvents: "none",
+          zIndex: 999999
         }}
       />
     </>

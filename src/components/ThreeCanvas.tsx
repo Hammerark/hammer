@@ -170,7 +170,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const rigRef = useRef<THREE.Group | null>(null);
   const instancedMeshRef = useRef<THREE.InstancedMesh | null>(null);
   const gridHelperRef = useRef<THREE.GridHelper | null>(null);
-  const concentricRingsRef = useRef<THREE.Group | null>(null);
+
   const osloMapRef = useRef<THREE.Mesh | null>(null);
   const htmlMapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -593,6 +593,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   });
 
   // Set up Three.js scene
+  const projectsRef = useRef(projects);
+  useEffect(() => {
+    projectsRef.current = projects;
+  }, [projects]);
+
   useEffect(() => {
     if (!containerRef.current || points.length === 0) return;
 
@@ -764,27 +769,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     scene.add(mapMesh);
     osloMapRef.current = mapMesh;
     */
-
-    // Circular concentric blueprint lines around the center coordinates
-    const concentricRings = new THREE.Group();
-    concentricRings.position.y = -5.79;
-    concentricRings.scale.set(MAP_SCALE, 1, MAP_SCALE); // Scale concentric rings by map scale
-    
-    // Create multiple faint blueprint rings
-    for (let r = 2; r <= 15; r += 3) {
-      const ringGeo = new THREE.RingGeometry(r, r + 0.04, 64);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: 0x111111,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.0
-      });
-      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-      ringMesh.rotation.x = Math.PI / 2;
-      concentricRings.add(ringMesh);
-    }
-    scene.add(concentricRings);
-    concentricRingsRef.current = concentricRings;
 
     // 10. Map markers linkage logic
     // Assign specific master points in the letter H (from layer index 0 / closest layer)
@@ -1243,11 +1227,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       if (gridHelper) {
         (gridHelper.material as THREE.Material).opacity = gridOpacity * 0.13;
       }
-      if (concentricRings) {
-        concentricRings.children.forEach(mesh => {
-          ((mesh as THREE.Mesh).material as THREE.Material).opacity = gridOpacity * 0.11;
-        });
-      }
       /*
       const osloMapMesh = osloMapRef.current;
       if (osloMapMesh) {
@@ -1256,7 +1235,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       */
       // 14. Adjust scaling of letters as viewport shifts (mobile zoom adjustment)
       // Base size of H formation is calibrated with a beautifully balanced scale boost, adjusted down by 5%
-      const scaleBoost = (isMobile ? 0.42 : 0.75) * 0.35 * 1.30 * 1.1875; 
+      // Reduce desktop visual size by ~26% (0.55 instead of 0.75) as requested
+      const scaleBoost = (isMobile ? 0.42 : 0.55) * 0.35 * 1.30 * 1.1875;
       const currentRigScale = (16 / (Math.max(W, H) || 1)) * scaleBoost;
       rig.scale.setScalar(currentRigScale);
       rig.updateMatrixWorld(true);
@@ -1302,7 +1282,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
             if (part.isProject) {
               // High-precision landing glide to project coordinates!
-              const proj = projects[part.projectIndex];
+              const proj = projectsRef.current[part.projectIndex];
+              if (!proj) continue; // Safety bounds check for dynamic loading
+
               
               // Eased smooth transition using the custom spring-damping physics algorithm
               const tSpring = getSpringWeight(t);
@@ -1394,7 +1376,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
 
         // 16. Update Actual HTML Map Markers
-        projects.forEach((proj) => {
+        projectsRef.current.forEach((proj) => {
           const actualMarker = actualMarkersRef.current[proj.id];
           if (!actualMarker) return;
           
@@ -1430,8 +1412,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       frameData.math = performance.now() - mathStart;
       const renderStart = performance.now();
       if (p < 0.85) {
+        if (containerRef.current) containerRef.current.style.visibility = "visible";
         renderer.autoClear = true;
         renderer.render(scene, camera);
+      } else {
+        // Hide WebGL canvas completely to avoid leaving artifacts when sequence is complete
+        if (containerRef.current) containerRef.current.style.visibility = "hidden";
       }
       frameData.render = performance.now() - renderStart;
       if (diagActive) diagFrames.push(frameData);
@@ -1471,6 +1457,55 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     };
   }, [points]);
+
+  // Safely inject markers into 3D instances when projects asynchronously load, without full WebGL teardown!
+  useEffect(() => {
+    const mesh = instancedMeshRef.current as any;
+    if (!mesh || !mesh.customData) return;
+    
+    const customParticles = mesh.customData;
+    
+    // Reset previous assignments
+    for (let i = 0; i < customParticles.length; i++) {
+        customParticles[i].isProject = false;
+        customParticles[i].projectIndex = -1;
+    }
+
+    if (projects.length === 0) return;
+
+    const validProjects = projects.filter(proj => 
+      typeof proj.lat === 'number' && !isNaN(proj.lat) && typeof proj.lng === 'number' && !isNaN(proj.lng)
+    );
+    
+    const projectCount = validProjects.length;
+    if (projectCount === 0) return;
+
+    const isMobileSizeConfig = typeof window !== "undefined" && window.innerWidth <= 767;
+    const LAYERS = isMobileSizeConfig ? 8 : 14;
+    const perLayer = customParticles.length / LAYERS;
+    const step = perLayer / (projectCount + 0.5);
+    
+    const selectedIndices: number[] = [];
+    for (let idx = 0; idx < projectCount; idx++) {
+      let candidate = Math.min(perLayer - 1, Math.floor((idx + 0.5) * step));
+      while (selectedIndices.includes(candidate) && candidate < perLayer - 1) {
+        candidate++;
+      }
+      selectedIndices.push(candidate);
+    }
+
+    // Inject exact indexes pointing back to the robust `projects` array via ID
+    for (let pi = 0; pi < perLayer; pi++) {
+      if (selectedIndices.includes(pi)) {
+         const validIndex = selectedIndices.indexOf(pi);
+         const proj = validProjects[validIndex];
+         const originalIndex = projects.findIndex(p => p.id === proj.id);
+         
+         customParticles[pi].isProject = true;
+         customParticles[pi].projectIndex = originalIndex;
+      }
+    }
+  }, [projects, points]);
 
   const mapFilters = [
     { id: "ALLE", label: "Alle", icon: null },

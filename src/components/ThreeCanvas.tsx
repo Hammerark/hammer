@@ -506,10 +506,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const [points] = useState<{ x: number; y: number }[]>(() => {
     const pts: { x: number; y: number }[] = [];
     
-    // Universal grid for all platforms
-    // Roughly 864 particles total (36 * 24), which is standard mobile size
-    const cols = 36;
-    const rows = 24;
+    const cols = 14;
+    const rows = 12;
     const stepX = W / cols;
     const stepY = H / rows;
 
@@ -1043,10 +1041,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
       const isMobile = window.innerWidth <= 1024;
 
-      // Beautiful fluid lerp to increase scrolling smoothness (snappier on mobile)
-      const lerpSpeed = isMobile ? 6.0 : 2.5;
-      smoothProgress += (rawP - smoothProgress) * (1 - Math.exp(-lerpSpeed * dt));
-      const p = smoothProgress;
+      // Bypass lerp for automated animation! The App.tsx already animates it with a flawless easeInOutSine curve.
+      // Lerping it again creates compound mathematical jitter and visual stutter.
+      smoothProgress = rawP;
+      const p = rawP;
 
       let floatX = 0;
       let floatY = 0;
@@ -1185,14 +1183,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             y = THREE.MathUtils.lerp(physY, targetY, tSpring);
             z = THREE.MathUtils.lerp(physZ, targetZ, tSpring);
 
-            // Add slight tactile vertical bounce
-            if (t > 0.65) {
-              const bt = (t - 0.65) / 0.35;
-              const damping = Math.exp(-bt * 3.0);
-              const bounceWave = Math.abs(Math.sin(bt * Math.PI * 3.0));
-              const bounceHeight = 8.0; // beautifully tuned for tactile settle feedback
-              y += bounceWave * damping * bounceHeight;
-            }
+            // (Removed artificial vertical bounce that caused violent shaking during transition)
             
             // Align orientation seamlessly to lie flat on the map blueprint, matching the exact HTML marker rotation at landing
             const targetRotYVal = THREE.MathUtils.degToRad(getProjectRotation(proj.id));

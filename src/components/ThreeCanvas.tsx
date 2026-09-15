@@ -1539,9 +1539,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const hasMobileSelection = !!selectedMobileProject;
               const opacity = isTouchDevice && hasMobileSelection && !isSelectedMob ? "opacity-20" : "opacity-100";
               
-              const baseScale = isTouchDevice ? (isSelectedMob ? 3.0 : 2.0) : 0.8;
+              // Original mobile scale logic, but with a 40% boost at max zoom to prevent them from becoming too small
+              const originalMobileScale = (isSelectedMob ? 2.346 : 1.38) * (0.6 / displayZoom) * (0.75 + Math.max(0, displayZoom - 3.15) / (18.0 - 3.15) * 0.25);
+              const zoomBoost = 1.0 + (Math.max(0, displayZoom - 1.4) / 6.6) * 0.40; // 40% less shrinking at max zoom (8.0)
+              
               const markerScale = isTouchDevice ? 
-                baseScale * (1.4 / displayZoom) :
+                originalMobileScale * zoomBoost :
                 (0.4 + 0.6 / displayZoom) * 0.8;
                 
               // Perfectly invert the map zoom and marker scale so the tooltip is exactly its base CSS size on screen.

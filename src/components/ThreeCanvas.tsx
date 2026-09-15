@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from "motion/react";
 import { RotateCcw, Lock, Unlock, Copy, Check, ArrowRight, Smartphone } from "lucide-react";
 import { Project } from "../data/projects";
 import osloNolliMap from "../assets/images/StorOslo.png";
+import osloNolliMap1600 from "../assets/images/StorOslo_1600.webp";
+import osloNolliMap2400 from "../assets/images/StorOslo_2400.webp";
+import osloNolliMap3600 from "../assets/images/StorOslo_3600.webp";
 import boligIcon from "../assets/images/Ikoner/Bolig2.png";
 import offentligIcon from "../assets/images/Ikoner/Offentlig2.png";
 import naeringIcon from "../assets/images/Ikoner/Næring2.png";
@@ -66,7 +69,7 @@ export const projectLatLngToMapPercent = (lat: number, lng: number): { xPercent:
 export const getMapPosFromLatLng = (lat: number, lng: number) => {
   const { xPercent, yPercent } = projectLatLngToMapPercent(lat, lng);
   const mapWidth = 40;
-  const mapHeight = 30;
+  const mapHeight = 40 * (1270 / 2048);
   return {
     x: -mapWidth / 2 + (xPercent / 100) * mapWidth,
     y: -5.75,
@@ -90,16 +93,18 @@ let diagActive = false;
 let diagStartTime = 0;
 
 export const startDiagnostics = () => {
-  if (typeof window !== 'undefined') (window as any).diagnosticReport = null;
+  if (typeof window === 'undefined' || new URLSearchParams(window.location.search).get("startDiagnostics") !== "true") return;
+  (window as any).diagnosticReport = null;
   diagFrames = [];
   diagActive = true;
   diagStartTime = performance.now();
   console.log("Diagnostics started");
-  
-  setTimeout(() => {
-    diagActive = false;
-    analyzeDiagnostics();
-  }, 5000); // Record for 5 seconds
+};
+
+export const stopDiagnostics = () => {
+  if (!diagActive) return;
+  diagActive = false;
+  analyzeDiagnostics();
 };
 
 const analyzeDiagnostics = () => {
@@ -188,6 +193,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const [zoom, setZoom] = useState(getBaseZoom());
   const zoomRef = useRef(getBaseZoom());
   const [pan, setPanState] = useState({ x: 0, y: 0 });
+  const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
 
   const setPan = (newPan: { x: number, y: number } | ((prev: {x: number, y: number}) => {x: number, y: number}), currentZoom: number = zoom) => {
     setPanState(prev => {
@@ -612,10 +618,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true, // Transparent WebGL canvas to show HTML map underneath
-      preserveDrawingBuffer: true
     });
     // Boost pixel ratio on mobile slightly to fix blurriness without killing performance
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileSizeConfig ? 1.5 : 2.0));
     renderer.setSize(width, height);
     renderer.setClearColor(0x000000, 0);
 
@@ -740,13 +745,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     instancedMeshRef.current = instancedMesh;
 
     // 9. Blueprint Map Elements on the ground
-    // We render a soft architectural grid visible in the landscape state
-    const gridHelper = new THREE.GridHelper(30 * MAP_SCALE, 30, "#111111", "#ececec");
-    gridHelper.position.y = -5.8;
-    gridHelper.material.opacity = 0.0;
-    gridHelper.material.transparent = true;
-    scene.add(gridHelper);
-    gridHelperRef.current = gridHelper;
+    // We removed GridHelper to improve performance and remove grid lines
 
     // 9b. Elegant Nolli Map of Oslo (Background Architectural Plan Layer)
     /*
@@ -1119,6 +1118,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         isPlayingSequence = true;
         sequenceStartTs = currentTime;
         (window as any).hammerSequenceFinished = false;
+        if (typeof window !== 'undefined') startDiagnostics();
       }
 
       let p = smoothProgress;
@@ -1130,7 +1130,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         // 0 - 3.0s: Raining H's landing (0.0 -> 0.70)
         if (seqElapsed < 3000) {
           const t = seqElapsed / 3000;
-          const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+          const ease = Math.sin((t * Math.PI) / 2); // easeOutSine makes landing less abrupt and better distributed over 3s
           forcedP = 0.0 + ease * 0.70;
         } 
         // 3.0s - 4.5s: Immediate smooth Map Zoom (0.70 -> 0.85)
@@ -1145,6 +1145,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         } 
         // Finish Sequence
         else {
+          if (forcedP !== 0.85 && typeof window !== 'undefined' && diagActive) stopDiagnostics();
           forcedP = 0.85;
           isPlayingSequence = false;
           sequenceFinished = true;
@@ -1155,8 +1156,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         p = forcedP;
       } else {
         // Fallback to normal scroll when sequence is done or not started
-        const lerpSpeed = isMobile ? 12.0 : 4.2;
-        smoothProgress += (rawP - smoothProgress) * (1 - Math.exp(-lerpSpeed * dt));
+        if (sequenceFinished) {
+          smoothProgress = 0.85;
+        } else {
+          const lerpSpeed = isMobile ? 12.0 : 4.2;
+          smoothProgress += (rawP - smoothProgress) * (1 - Math.exp(-lerpSpeed * dt));
+        }
         p = smoothProgress;
       }
       // END TIME-BASED SEQUENCE LOGIC
@@ -1224,9 +1229,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         gridOpacity = 1.0;
       }
 
-      if (gridHelper) {
-        (gridHelper.material as THREE.Material).opacity = gridOpacity * 0.13;
-      }
+
       /*
       const osloMapMesh = osloMapRef.current;
       if (osloMapMesh) {
@@ -1290,10 +1293,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const tSpring = getSpringWeight(t);
               
               // Target coordinates mapped to local rig space coordinates
-              const mapPos = getMapPosFromLatLng(proj.lat, proj.lng);
-              const targetX = (mapPos.x * MAP_SCALE) / currentRigScale;
-              const targetY = mapPos.y / currentRigScale;
-              const targetZ = (mapPos.z * MAP_SCALE) / currentRigScale;
+              const targetX = (part.targetX * MAP_SCALE) / currentRigScale;
+              const targetY = part.targetY / currentRigScale;
+              const targetZ = (part.targetZ * MAP_SCALE) / currentRigScale;
 
               // Transition gracefully from the physical gravitational path to the exact target coordinate
               x = THREE.MathUtils.lerp(physX, targetX, tSpring);
@@ -1376,15 +1378,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
 
         // 16. Update Actual HTML Map Markers
+        const targetMarkerOpacity = p >= 0.70 ? "1" : "0";
         projectsRef.current.forEach((proj) => {
           const actualMarker = actualMarkersRef.current[proj.id];
-          if (!actualMarker) return;
-          
-          // Instant swap at 0.70 when 3D markers hide
-          if (p >= 0.70) {
-            actualMarker.style.opacity = "1";
-          } else {
-            actualMarker.style.opacity = "0";
+          if (actualMarker && actualMarker.style.opacity !== targetMarkerOpacity) {
+            actualMarker.style.opacity = targetMarkerOpacity;
+            actualMarker.style.pointerEvents = p >= 0.70 ? "auto" : "none";
           }
         });
         
@@ -1503,6 +1502,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
          
          customParticles[pi].isProject = true;
          customParticles[pi].projectIndex = originalIndex;
+
+         // Pre-calculate target landing coordinates so we don't compute on every frame
+         const { xPercent, yPercent } = projectLatLngToMapPercent(proj.lat, proj.lng);
+         const mapWidth = 40;
+         const mapHeight = 40 * (1270 / 2048);
+         customParticles[pi].targetX = -mapWidth / 2 + (xPercent / 100) * mapWidth;
+         customParticles[pi].targetY = -5.75;
+         customParticles[pi].targetZ = -mapHeight / 2 + (yPercent / 100) * mapHeight;
       }
     }
   }, [projects, points]);
@@ -1633,11 +1640,18 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         >
             {/* The crisp, centered PNG artwork rendered directly */}
             <div className="absolute inset-0 w-full h-full pointer-events-none select-none">
-              <img 
-                src={osloNolliMap}
-                alt="Oslo Nolli Map"
-                className="w-full h-full object-fill pointer-events-none"
-              />
+              <picture>
+                <source srcSet={osloNolliMap1600} media="(max-width: 768px)" type="image/webp" />
+                <source srcSet={osloNolliMap2400} media="(max-width: 1440px)" type="image/webp" />
+                <source srcSet={osloNolliMap3600} media="(min-width: 1441px)" type="image/webp" />
+                <img 
+                  src={osloNolliMap}
+                  alt="Oslo Nolli Map"
+                  className="w-full h-full object-fill pointer-events-none"
+                  loading="eager"
+                  fetchPriority="high"
+                />
+              </picture>
 
             </div>
             
@@ -1666,6 +1680,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                 
               // Perfectly invert the map zoom and marker scale so the tooltip is exactly its base CSS size on screen.
               const tooltipScale = 1 / (displayZoom * markerScale);
+              const inverseScale = isTouchDevice ? tooltipScale : 1;
+              const btnSize = isTouchDevice ? 44 * inverseScale : 16;
+              const btnOffset = isTouchDevice ? -22 * inverseScale : -8;
+              const svgSize = isTouchDevice ? (isDragModeEnabled ? 16 * inverseScale : 14 * inverseScale) : (isDragModeEnabled ? 6.3 : 5.75);
 
               return (
                 <div
@@ -1700,7 +1718,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                       id={`html-marker-${proj.id}`}
                       aria-label={`Prosjekt: ${proj.name}, ${proj.location}`}
                       aria-expanded={isActive}
-                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                      style={{ 
+                        WebkitTapHighlightColor: 'transparent',
+                        width: `${btnSize}px`,
+                        height: `${btnSize}px`,
+                        left: `${btnOffset}px`,
+                        top: `${btnOffset}px`
+                      }}
                       onClick={(e) => {
                         triggerHaptic();
                         if (isDragModeEnabled) {
@@ -1711,10 +1735,35 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                         
                         const isMobile = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 767);
                         if (isMobile) {
-                          if (selectedMobileProject?.id === proj.id) {
+                          let targetProj = proj;
+                          
+                          // e.detail > 0 means physical tap/click, not keyboard Enter (which is 0)
+                          if (e.detail > 0 && e.clientX && e.clientY) {
+                            let minDistance = Infinity;
+                            const allButtons = document.querySelectorAll('button[id^="html-marker-"]');
+                            
+                            allButtons.forEach((btn) => {
+                               const parent = btn.closest('.project-marker') as HTMLElement;
+                               if (parent && parent.style.pointerEvents !== "none") {
+                                  const rect = btn.getBoundingClientRect();
+                                  const centerX = rect.left + rect.width / 2;
+                                  const centerY = rect.top + rect.height / 2;
+                                  const dist = Math.hypot(centerX - e.clientX, centerY - e.clientY);
+                                  
+                                  if (dist < minDistance && dist <= 44) { 
+                                      minDistance = dist;
+                                      const btnProjId = btn.id.replace('html-marker-', '');
+                                      const foundProj = projects.find(p => p.id === btnProjId);
+                                      if (foundProj) targetProj = foundProj;
+                                  }
+                               }
+                            });
+                          }
+
+                          if (selectedMobileProject?.id === targetProj.id) {
                             setSelectedMobileProject(null);
                           } else {
-                            setSelectedMobileProject(proj);
+                            setSelectedMobileProject(targetProj);
                           }
                         }
                       }}
@@ -1731,11 +1780,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                           setDraggedPinId(proj.id);
                         }
                       }}
-                      className={`group absolute focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:rounded-full ${scrollProgress < 0.65 ? "pointer-events-none" : "pointer-events-auto"} flex items-center justify-center ${
+                      onMouseEnter={() => setHoveredProjectId(proj.id)}
+                      onMouseLeave={() => setHoveredProjectId(null)}
+                      className={`group absolute focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:rounded-full flex items-center justify-center ${
                         isDragModeEnabled 
                           ? "cursor-grab active:cursor-grabbing" 
                           : "cursor-default"
-                      } ${isTouchDevice ? "w-[24px] h-[24px] -left-[12px] -top-[12px]" : "w-[16px] h-[16px] -left-[8px] -top-[8px]"}`}
+                      }`}
                     >
                       <div 
                         className="pointer-events-none flex items-center justify-center transition-transform duration-300 ease-out absolute inset-0"
@@ -1750,10 +1801,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                         >
                           <svg
                             viewBox="0 0 180.99 123.93"
+                            style={{ width: `${svgSize}px` }}
                             className={`transition-all duration-300 opacity-100 select-none h-auto ${
                               isDragModeEnabled
-                                ? `fill-amber-500 hover:fill-amber-600 drop-shadow-sm ${isMobile ? "w-[7.56px]" : "w-[6.3px]"}`
-                                : `fill-neutral-900 drop-shadow-sm ${isMobile ? "w-[6.9px]" : "w-[5.75px]"}`
+                                ? `fill-amber-500 hover:fill-amber-600 drop-shadow-sm`
+                                : `fill-neutral-900 drop-shadow-sm`
                             }`}
                           >
                             <path d="M 36.89 0 L 0 0 L 0 123.93 L 36.89 123.93 L 36.89 79.23 L 144.10 79.23 L 144.10 123.93 L 180.99 123.93 L 180.99 0 L 144.10 0 L 144.10 47.79 L 36.89 47.79 Z" />
@@ -1778,7 +1830,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                             <div className="flex flex-col w-full bg-white rounded-none overflow-hidden shadow-lg border border-neutral-100">
                               <div className="w-full h-32 relative bg-neutral-100">
                                 {proj.image ? (
-                                  <img src={proj.image} alt={proj.name} className="w-full h-full object-cover" />
+                                  (isActive || hoveredProjectId === proj.id) ? (
+                                    <img 
+                                      src={proj.image.includes('?') ? `${proj.image}&w=400&fm=webp&q=75` : `${proj.image}?w=400&fm=webp&q=75`} 
+                                      alt={proj.name} 
+                                      className="w-full h-full object-cover" 
+                                    />
+                                  ) : null
                                 ) : (
                                    <div className="w-full h-full flex items-center justify-center text-neutral-400 text-[10px] bg-white">Bilde kommer</div>
                                 )}

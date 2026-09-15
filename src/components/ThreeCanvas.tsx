@@ -1353,8 +1353,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       renderer.dispose();
       geo.dispose();
       mat.dispose();
-      blurGeo.dispose();
-      blurMat.dispose();
       if (osloMapRef.current) {
         if (osloMapRef.current.geometry) osloMapRef.current.geometry.dispose();
         const mapM = osloMapRef.current.material as THREE.MeshBasicMaterial;

@@ -526,8 +526,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   useEffect(() => {
     if (!containerRef.current || points.length === 0) return;
 
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
+    let width = containerRef.current.clientWidth;
+    let height = containerRef.current.clientHeight;
 
     // 1. Renderer Creator
     const renderer = new THREE.WebGLRenderer({
@@ -988,11 +988,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // Handle resizing
     const resize = () => {
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
-      const w = containerRef.current.clientWidth;
-      const h = containerRef.current.clientHeight;
+      width = containerRef.current.clientWidth;
+      height = containerRef.current.clientHeight;
       
-      rendererRef.current.setSize(w, h);
-      cameraRef.current.aspect = w / h;
+      rendererRef.current.setSize(width, height);
+      cameraRef.current.aspect = width / height;
       cameraRef.current.updateProjectionMatrix();
     };
     window.addEventListener("resize", resize);
@@ -1267,8 +1267,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
         // 16. Update HTML labels on screen
         // We project the 3D mapPos coordinates of our 8 projects into 2D viewport coordinates
-        const canvasWidth = state.size.width;
-        const canvasHeight = state.size.height;
+        const canvasWidth = width;
+        const canvasHeight = height;
         
         projects.forEach((proj, idx) => {
           const markerEl = markersRef.current[idx];

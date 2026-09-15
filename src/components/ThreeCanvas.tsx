@@ -280,7 +280,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       setPan({ x: 0, y: 0 });
       setIsMapInteracting(false);
       if (autoZoomTimeoutRef.current) clearTimeout(autoZoomTimeoutRef.current);
-    } else if (scrollProgress >= 0.78 && !isMapInteractingRef.current) {
+    } else if (scrollProgress >= 0.82 && !isMapInteractingRef.current) {
       // Trigger auto-zoom seamlessly WHILE the map is fading in, creating a perfectly continuous motion with NO stop
       if (autoZoomTimeoutRef.current) clearTimeout(autoZoomTimeoutRef.current);
       autoZoomTimeoutRef.current = setTimeout(() => {
@@ -794,8 +794,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         // triggerStartProgress range on desktop: 0.15 to 0.23, mobile: 0.01 to 0.09
         const baseStart = (typeof window !== "undefined" && window.innerWidth <= 1024) ? 0.01 : 0.15;
         const triggerStartProgress = baseStart + (seedValue1 * 0.5 + 0.5) * 0.08;
-        // triggerDuration range: 0.45 to 0.55. Total time: 0.60 to 0.78 progress units max
-        const triggerDuration = 0.55 + (seedValue2 * 0.5 + 0.5) * 0.15;
+        // triggerDuration strictly compressed. Total landing time must finish BEFORE 0.70. Pause from 0.70 to 0.80.
+        const triggerDuration = 0.35 + (seedValue2 * 0.5 + 0.5) * 0.12; // 0.35 to 0.47 max
 
         // Custom individual physics: staggered vertical recoil and gravity gives full 3D depth to the explosion plume
         const gravityConstant = -45.0 - Math.abs(seedValue2) * 30.0;
@@ -1078,12 +1078,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       let camZ = isMobile ? 26 : 22;
       let camX = 0;
 
-      if (p <= 0.15) {
+      if (p <= 0.05) {
         // Front facing focus
         camera.position.set(0, camY, camZ);
         camera.lookAt(0, 0, 0);
-      } else if (p > 0.15 && p < 0.85) {
-        const u = (p - 0.15) / 0.70; // normalized 0 to 1
+      } else if (p > 0.05 && p < 0.40) {
+        // Move camera EARLY so it settles BEFORE the heavy rain lands, keeping the shot calm!
+        const u = (p - 0.05) / 0.35; // normalized 0 to 1
         const uEase = u * u * (3 - 2 * u); // smoothstep
 
         // Camera shifts from (0, camY, camZ) to bird-eye site map view (0, 16.5, 9.5) looking at (0, -4.5, 0)
@@ -1199,9 +1200,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
             // Smoothly fade out the 3D target particles as the 2D HTML markers fade in
             let markerOpacity = 0.0;
-            if (p >= 0.78 && p < 0.85) {
-              markerOpacity = (p - 0.78) / 0.07;
-            } else if (p >= 0.85) {
+            if (p >= 0.75 && p < 0.82) {
+              markerOpacity = (p - 0.75) / 0.07;
+            } else if (p >= 0.82) {
               markerOpacity = 1.0;
             }
             opacityVal = Math.max(0, 1.0 - markerOpacity);
@@ -1319,9 +1320,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
         // Update the HTML Map Layer opacity and pointer-events dynamically inside tick
         let mapOpacityVal = 0.0;
-        if (p >= 0.50 && p < 0.75) {
-          mapOpacityVal = (p - 0.50) / 0.25;
-        } else if (p >= 0.75) {
+        if (p >= 0.45 && p < 0.70) {
+          mapOpacityVal = (p - 0.45) / 0.25;
+        } else if (p >= 0.70) {
           mapOpacityVal = 1.0;
         }
 

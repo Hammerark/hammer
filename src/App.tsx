@@ -255,8 +255,8 @@ export default function App() {
     const startScrollY = window.scrollY;
     const distance = targetScrollY - startScrollY;
     
-    // Elegant, cinematic duration
-    const duration = 2400;
+    // Elegant, cinematic duration (Extended for pause phase)
+    const duration = 3500;
     let startTime: number | null = null;
     isAutoScrollingRef.current = true;
 

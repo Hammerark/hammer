@@ -1400,10 +1400,17 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     return true;
   };
 
+
   const isMobileSize = typeof window !== "undefined" && window.innerWidth <= 1024;
   const isCategoriesCollapsed = false;
+  
+  // Calculate a fully seamless automatic zoom based purely on scroll progress if not interacting
+  const displayZoom = (!isMapInteractingRef.current && scrollProgress >= 0.85) 
+    ? 1.0 + (getTargetZoom() - 1.0) * Math.min(1.0, (scrollProgress - 0.85) / 0.15)
+    : zoom;
 
   return (
+
     <div className="relative w-full h-full select-none overflow-hidden bg-white">
 
 
@@ -1449,7 +1456,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           animate={{
             x: pan.x,
             y: pan.y,
-            scale: zoom * MAP_SCALE
+            scale: displayZoom * MAP_SCALE
           }}
           transition={
             isDragging 
@@ -1518,11 +1525,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const opacity = isMobile && hasMobileSelection && !isSelectedMob ? "opacity-20" : "opacity-100";
               
               const markerScale = isMobile ? 
-                (isSelectedMob ? 2.346 : 1.38) * (0.6 / zoom) * (0.75 + Math.max(0, zoom - 3.15) / (18.0 - 3.15) * 0.25) :
-                (0.4 + 0.6 / zoom) * 0.8;
+                (isSelectedMob ? 2.346 : 1.38) * (0.6 / displayZoom) * (0.75 + Math.max(0, displayZoom - 3.15) / (18.0 - 3.15) * 0.25) :
+                (0.4 + 0.6 / displayZoom) * 0.8;
                 
               // Perfectly invert the map zoom and marker scale so the tooltip is exactly its base CSS size on screen.
-              const tooltipScale = 1 / (zoom * markerScale);
+              const tooltipScale = 1 / (displayZoom * markerScale);
 
               return (
                 <div
@@ -1620,7 +1627,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                             style={{ 
                               transform: `translateX(-50%) scale(${tooltipScale})`,
                               transformOrigin: "bottom center",
-                              marginBottom: `${16 / (zoom * markerScale)}px`
+                              marginBottom: `${16 / (displayZoom * markerScale)}px`
                             }}
                             className={`flex flex-col w-48 absolute bottom-full left-1/2 pointer-events-none z-50 ${isMobileSize && selectedMobileProject?.id !== proj.id ? 'hidden' : ''}`}
                           >

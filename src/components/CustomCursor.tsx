@@ -131,7 +131,7 @@ export const CustomCursor: React.FC = () => {
       
       {/* Minimal Dot Cursor */}
       <motion.div
-        className={`fixed top-0 left-0 pointer-events-none z-[10000] hidden md:flex items-center justify-center overflow-visible ${isMagnetMenu ? "" : "mix-blend-difference"}`}
+        className={`fixed top-0 left-0 pointer-events-none z-[10000] hidden md:flex items-center justify-center overflow-visible `}
         animate={{
           x: mousePosition.x - 4,
           y: mousePosition.y - 4,
@@ -143,7 +143,7 @@ export const CustomCursor: React.FC = () => {
           width: 8,
           height: 8,
           borderRadius: "50%",
-          backgroundColor: isMagnetMenu ? "black" : "white",
+          backgroundColor: "#111111",
         }}
       />
     </>

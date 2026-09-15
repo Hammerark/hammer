@@ -1432,7 +1432,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       <div 
         id="blyHBg" 
         ref={containerRef} 
-        className={`absolute inset-0 w-full h-full ${scrollProgress < 0.65 ? 'cursor-pointer' : ''}`}
+        className={`absolute inset-0 w-full h-full`}
         onClick={() => {
           triggerHaptic();
           if (scrollRef.current < 0.65 && onHClick && typeof window !== "undefined" && window.innerWidth > 1024) {
@@ -1517,11 +1517,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                 alt="Oslo Nolli Map"
                 className="w-full h-full object-fill pointer-events-none"
               />
-              {/* White Fade Overlays for the 4 edges */}
-              <div className="absolute inset-x-0 top-0 h-[5%] bg-gradient-to-b from-white to-transparent pointer-events-none" />
-              <div className="absolute inset-x-0 bottom-0 h-[5%] bg-gradient-to-t from-white to-transparent pointer-events-none" />
-              <div className="absolute inset-y-0 left-0 w-[20%] bg-gradient-to-r from-white to-transparent pointer-events-none" />
-              <div className="absolute inset-y-0 right-0 w-[20%] bg-gradient-to-l from-white to-transparent pointer-events-none" />
+
             </div>
             
             {/* Project Markers rendered above the image */}
@@ -1678,6 +1674,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               );
             })}
           </motion.div>
+
+          {/* White Fade Overlays fixed to the screen edges to provide a permanent soft vignette over the map */}
+          <div className="absolute inset-x-0 top-0 h-[5%] bg-gradient-to-b from-white to-transparent pointer-events-none z-50" />
+          <div className="absolute inset-x-0 bottom-0 h-[5%] bg-gradient-to-t from-white to-transparent pointer-events-none z-50" />
+          <div className="absolute inset-y-0 left-0 w-[15%] md:w-[20%] bg-gradient-to-r from-white to-transparent pointer-events-none z-50" />
+          <div className="absolute inset-y-0 right-0 w-[15%] md:w-[20%] bg-gradient-to-l from-white to-transparent pointer-events-none z-50" />
 
           {/* Sleek Minimalist Architectural Map Controls Panel */}
           <div className={`hidden absolute bottom-8 right-8 z-40 flex flex-col gap-2 items-center ${scrollProgress < 0.65 ? "pointer-events-none" : "pointer-events-auto"} ${isMobileSize && selectedMobileProject ? "hidden" : ""} select-none`}>

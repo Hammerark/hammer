@@ -537,12 +537,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // 1. Renderer Creator
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      alpha: false,
+      alpha: true,
       preserveDrawingBuffer: true
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setSize(width, height);
-    renderer.setClearColor("#ffffff", 1);
+    renderer.setClearColor(0x000000, 0);
 
     // Explicit style to prevent double rendering elements stacking or shifting to bottom-right
     const domEl = renderer.domElement;
@@ -561,9 +561,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     // 2. Scene setup
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#ffffff");
+    scene.background = null;
     // Soft architectural misty fog
-    scene.fog = new THREE.FogExp2("#ffffff", 0.02);
+    scene.fog = new THREE.FogExp2("#ffffff", 0.005); // Reduced fog for transparency
     sceneRef.current = scene;
 
     // 3. Camera setup
@@ -785,21 +785,21 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const combinedDirX = radialX * 0.45 + angleCos * 0.55;
         const combinedDirZ = radialZ * 0.45 + angleSin * 0.55;
 
-        // Individual launch speeds between 35.0 and 70.0 for varied distance distributions
-        const speedMagnitude = 75.0 + Math.abs(seedValue1) * 75.0; 
+        // Calm the sideways drift so the rain falls heavily down instead of flying away
+        const speedMagnitude = 35.0 + Math.abs(seedValue1) * 35.0; 
         const driftX = combinedDirX * speedMagnitude;
         const driftZ = combinedDirZ * speedMagnitude;
 
         // Perfect physical timeline: ensures all particles complete landing/trajectory BEFORE progress 0.70
-        // triggerStartProgress range on desktop: 0.15 to 0.23, mobile: 0.01 to 0.09
-        const baseStart = (typeof window !== "undefined" && window.innerWidth <= 1024) ? 0.01 : 0.15;
+        // Start time is identical across all devices so the rain aligns perfectly with the map fade-in!
+        const baseStart = 0.15;
         const triggerStartProgress = baseStart + (seedValue1 * 0.5 + 0.5) * 0.08;
         // triggerDuration strictly compressed. Total landing time must finish BEFORE 0.70. Pause from 0.70 to 0.80.
         const triggerDuration = 0.35 + (seedValue2 * 0.5 + 0.5) * 0.12; // 0.35 to 0.47 max
 
-        // Custom individual physics: staggered vertical recoil and gravity gives full 3D depth to the explosion plume
-        const gravityConstant = -45.0 - Math.abs(seedValue2) * 30.0;
-        const initialVelocityY = 16.0 + Math.abs(seedValue3) * 14.0;
+        // High vertical pop, very heavy gravity for a distinct downward rain
+        const gravityConstant = -80.0 - Math.abs(seedValue2) * 40.0;
+        const initialVelocityY = 25.0 + Math.abs(seedValue3) * 15.0;
 
         // Spin offsets
         const rotSpeedX = seedValue1 * Math.PI * 4.5;
@@ -1198,14 +1198,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             // Project marker stays dark/charcoal `#111111`
             dummyColor.copy(fgColor);
 
-            // Smoothly fade out the 3D target particles as the 2D HTML markers fade in
-            let markerOpacity = 0.0;
-            if (p >= 0.75 && p < 0.82) {
-              markerOpacity = (p - 0.75) / 0.07;
-            } else if (p >= 0.82) {
-              markerOpacity = 1.0;
+            // Seamless swap: Hide 3D models the millisecond HTML markers turn on (p >= 0.75)
+            // Because they have identical position and scale, the eye won't notice the swap!
+            if (p >= 0.75) {
+              opacityVal = 0.0;
+            } else {
+              opacityVal = 1.0;
             }
-            opacityVal = Math.max(0, 1.0 - markerOpacity);
           } else {
             // Ordinary dissolving background particle follows the full simulated gravity track
             x = physX;
@@ -1220,12 +1219,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             // Shrink completely to zero as it dissolves, starting from 1.3x scale
             finalScale = (SMALL_SCALE * 1.3) * (1.0 - t * t);
 
-            // Fade to background color matching clean environment
-            const lerpVal = Math.min(1, t * 1.4);
-            dummyColor.copy(fgColor).lerp(bgColor, lerpVal);
+            // Do NOT lerp to white bgColor (which caused them to vanish prematurely)
+            dummyColor.copy(fgColor); 
 
-            // Gently fade opacity as it dissolves
-            opacityVal = Math.max(0, 1.0 - t * t * 1.3);
+            // Gently fade opacity as it dissolves, ensuring they are visible much longer during the rain
+            opacityVal = Math.max(0, 1.0 - (t * t));
           }
 
           // Apply opening animation (reversed explosion)
@@ -1265,6 +1263,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (opacityAttr) {
           opacityAttr.needsUpdate = true;
         }
+        } // End CULLING OPTIMIZATION
 
         // 16. Update HTML labels on screen
         // We project the 3D mapPos coordinates of our 8 projects into 2D viewport coordinates
@@ -1276,7 +1275,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           if (!markerEl) return;
 
           // Project markers are only interactive during map phase
-          const activeProgress = p >= 0.65;
+          const activeProgress = p >= 0.70;
           
           if (!activeProgress) {
             markerEl.style.opacity = "0";
@@ -1300,11 +1299,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const screenX = (targetVec.x * 0.5 + 0.5) * canvasWidth;
           const screenY = (-targetVec.y * 0.5 + 0.5) * canvasHeight;
 
-          // Fade markers in and out beautifully based on scroll progress
+          // At p=0.75, the 3D particles are fully landed. We do a hard, seamless swap during the static pause
+          // so there is no ghosting or double-rendering!
           let opacity = 0.0;
-          if (p >= 0.78 && p < 0.85) {
-            opacity = (p - 0.65) / 0.06; // fade in
-          } else if (p >= 0.85) {
+          if (p >= 0.75) {
             opacity = 1.0;
           }
 
@@ -1418,7 +1416,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           touchAction: "none",
           opacity: 0
         }} 
-        className="absolute inset-0 z-30 flex items-center justify-center bg-white transition-opacity duration-300 overflow-hidden select-none"
+        className="absolute inset-0 z-0 flex items-center justify-center bg-white transition-opacity duration-300 overflow-hidden select-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUpOrLeave}

@@ -696,8 +696,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       antialias: true,
       alpha: true, // Transparent WebGL canvas to show HTML map underneath
     });
-    // Boost pixel ratio on desktop, but cap at 1.0 on mobile to guarantee smooth 60fps framerate for heavy particles
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileSizeConfig ? 1.0 : 1.5));
+    // Boost pixel ratio for crisp resolution on modern devices (cap at 2.0 to balance quality and performance)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
     renderer.setSize(width, height);
     renderer.setClearColor(0x000000, 0);
 

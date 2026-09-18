@@ -1319,6 +1319,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       rig.scale.setScalar(currentRigScale);
       rig.updateMatrixWorld(true);
 
+      // Dynamically calculate the perfect scale to match the 8px/14px DOM markers exactly
+      const targetSvgSize = isMobile ? 8.0 : 14.0;
+      const visibleHeight = 11.516; // Visible height at y=15, FOV 42
+      const visibleWidth = visibleHeight * (W / H);
+      const targetWorldWidth = targetSvgSize * (visibleWidth / (W || 1));
+      const dynamicSmallScale = currentRigScale > 0 ? targetWorldWidth / (180.99 * currentRigScale) : 0.024;
+
       // 15. Render particle positions
       const mesh = instancedMeshRef.current;
       if (mesh && (mesh as any).customData) {
@@ -1355,7 +1362,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             let rotYVal = 0;
             let rotZVal = 0;
 
-            let finalScale = SMALL_SCALE * 1.3;
+            let finalScale = dynamicSmallScale * 1.3;
             let opacityVal = 1.0;
 
             if (part.isProject) {
@@ -1384,7 +1391,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
 
               // Transition smoothly from 1.3x scale to 1.0x scale as particles settle to map markers
-              finalScale = THREE.MathUtils.lerp(SMALL_SCALE * 1.3, SMALL_SCALE, tSpring);
+              finalScale = THREE.MathUtils.lerp(dynamicSmallScale * 1.3, dynamicSmallScale, tSpring);
 
               // Project marker stays dark/charcoal `#111111`
               dummyColor.copy(fgColor);
@@ -1403,7 +1410,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               rotZVal = part.rotSpeedZ * t;
 
               // Shrink completely to zero as it dissolves, starting from 1.3x scale
-              finalScale = (SMALL_SCALE * 1.3) * (1.0 - t * t);
+              finalScale = (dynamicSmallScale * 1.3) * (1.0 - t * t);
 
               // Fade to background color matching clean environment
               const lerpVal = Math.min(1, t * 1.4);

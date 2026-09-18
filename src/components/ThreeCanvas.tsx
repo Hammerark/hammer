@@ -1392,8 +1392,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, targetRotYVal, tSpring);
               rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
 
-              // Transition smoothly from slightly larger falling scale to exactly the 1.0x DOM scale
-              finalScale = THREE.MathUtils.lerp(targetParticleScale * 1.5, targetParticleScale, tSpring);
+              // Project markers start at dust scale (inside the logo) and grow to precisely match the DOM scale as they land
+              finalScale = THREE.MathUtils.lerp(dustScale, targetParticleScale, tSpring);
 
               // Project marker stays dark/charcoal `#111111`
               dummyColor.copy(fgColor);

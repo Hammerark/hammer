@@ -1359,15 +1359,34 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             let finalScale = SMALL_SCALE;
             let opacityVal = 1.0;
 
-            // ALL particles follow identical physics — no special 3D landing targets
-            // The HTML map markers handle the visual "landing" with their correct CSS positions
-            x = physX;
-            y = physY;
-            z = physZ;
+            if (part.isProject) {
+              const tSpring = getSpringWeight(t);
+              const proj = projectsRef.current[part.projectIndex];
+              
+              // Transition gracefully from the physical gravitational path to the exact target coordinate
+              x = THREE.MathUtils.lerp(physX, part.targetX, tSpring);
+              y = THREE.MathUtils.lerp(physY, part.targetY, tSpring);
+              z = THREE.MathUtils.lerp(physZ, part.targetZ, tSpring);
+              
+              const targetRotYVal = proj ? THREE.MathUtils.degToRad(getProjectRotation(proj.id)) : 0;
+              rotXVal = THREE.MathUtils.lerp(part.rotSpeedX * t, -Math.PI / 2, tSpring);
+              rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, targetRotYVal, tSpring);
+              rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
+              
+              // Maintain standard scale and gracefully fade 3D particle out just as HTML marker fully appears
+              opacityVal = p < 0.65 ? 1.0 : Math.max(0, 1.0 - (p - 0.65) / 0.05);
+            } else {
+              x = physX;
+              y = physY;
+              z = physZ;
 
-            rotXVal = part.rotSpeedX * t;
-            rotYVal = part.rotSpeedY * t;
-            rotZVal = part.rotSpeedZ * t;
+              rotXVal = part.rotSpeedX * t;
+              rotYVal = part.rotSpeedY * t;
+              rotZVal = part.rotSpeedZ * t;
+              
+              // Gently fade opacity for non-project particles
+              opacityVal = Math.max(0, 1.0 - t * t * 1.3);
+            }
 
             // Shrink smoothly to zero as they settle
             finalScale = SMALL_SCALE * (1.0 - t * t);
@@ -1543,6 +1562,33 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     }
 
     // Inject exact indexes pointing back to the robust `projects` array via ID
+    // Calculate actual world bounds of the CSS map at the landing plane (y=0, camera distance 15, FOV 42)
+    const fovY = 42;
+    const distance = 15.0;
+    const visibleHeight = 2 * Math.tan((fovY / 2) * Math.PI / 180) * distance;
+    
+    let screenWidth = containerRef.current ? containerRef.current.clientWidth : window.innerWidth;
+    let screenHeight = containerRef.current ? containerRef.current.clientHeight : window.innerHeight;
+    if (screenWidth === 0) screenWidth = 1024;
+    if (screenHeight === 0) screenHeight = 768;
+
+    let mapCssWidthPx, mapCssHeightPx;
+    if (isMobileSizeConfig && screenHeight > screenWidth) {
+      mapCssHeightPx = screenHeight * 0.75;
+      mapCssWidthPx = mapCssHeightPx * (2048 / 1270);
+    } else {
+      mapCssWidthPx = screenWidth * 0.90;
+      mapCssHeightPx = mapCssWidthPx * (1270 / 2048);
+    }
+
+    const mapWorldHeight = visibleHeight * (mapCssHeightPx / screenHeight);
+    const mapWorldWidth = visibleHeight * (screenWidth / screenHeight) * (mapCssWidthPx / screenWidth);
+    
+    const W = 180.99;
+    const H = 123.93;
+    const scaleBoost = (isMobileSizeConfig ? 0.42 : 0.55) * 0.35 * 1.30 * 1.1875;
+    const baseRigScale = (16 / (Math.max(W, H) || 1)) * scaleBoost;
+
     for (let pi = 0; pi < perLayer; pi++) {
       if (selectedIndices.includes(pi)) {
          const validIndex = selectedIndices.indexOf(pi);
@@ -1554,11 +1600,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
          // Pre-calculate target landing coordinates so we don't compute on every frame
          const { xPercent, yPercent } = projectLatLngToMapPercent(proj.lat, proj.lng);
-         const mapWidth = 40;
-         const mapHeight = 40 * (1270 / 2048);
-         customParticles[pi].targetX = -mapWidth / 2 + (xPercent / 100) * mapWidth;
-         customParticles[pi].targetY = -5.75;
-         customParticles[pi].targetZ = -mapHeight / 2 + (yPercent / 100) * mapHeight;
+         
+         const targetWorldX = -mapWorldWidth / 2 + (xPercent / 100) * mapWorldWidth;
+         const targetWorldZ = -mapWorldHeight / 2 + (yPercent / 100) * mapWorldHeight;
+         const targetWorldY = 0; // The landing plane at y=0
+         
+         customParticles[pi].targetX = targetWorldX / baseRigScale;
+         customParticles[pi].targetY = targetWorldY / baseRigScale;
+         customParticles[pi].targetZ = targetWorldZ / baseRigScale;
       }
     }
   }, [projects, points]);

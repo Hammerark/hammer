@@ -1321,10 +1321,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
       // Dynamically calculate the perfect scale to match the 8px/14px DOM markers exactly
       const targetSvgSize = isMobile ? 8.0 : 14.0;
-      const visibleHeight = 11.516; // Visible height at y=15, FOV 42
-      const visibleWidth = visibleHeight * (W / H);
-      const targetWorldWidth = targetSvgSize * (visibleWidth / (W || 1));
-      const dynamicSmallScale = currentRigScale > 0 ? targetWorldWidth / (180.99 * currentRigScale) : 0.024;
+      let mapContainerWidth = W * 0.9;
+      if (isMobile && H > W) {
+        mapContainerWidth = (H * 0.75) * (2048 / 1270);
+      }
+      // 3D Geometry width is 180.99. 3D Map width is 16.0.
+      const dynamicSmallScale = (targetSvgSize / mapContainerWidth) * (16.0 / 180.99);
 
       // 15. Render particle positions
       const mesh = instancedMeshRef.current;
@@ -1362,7 +1364,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             let rotYVal = 0;
             let rotZVal = 0;
 
-            let finalScale = dynamicSmallScale * 1.3;
+            let finalScale = dynamicSmallScale * 4.0;
             let opacityVal = 1.0;
 
             if (part.isProject) {
@@ -1390,8 +1392,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, targetRotYVal, tSpring);
               rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
 
-              // Transition smoothly from 1.3x scale to 1.0x scale as particles settle to map markers
-              finalScale = THREE.MathUtils.lerp(dynamicSmallScale * 1.3, dynamicSmallScale, tSpring);
+              // Transition smoothly from large rain scale to exactly the 1.0x DOM scale
+              finalScale = THREE.MathUtils.lerp(dynamicSmallScale * 4.0, dynamicSmallScale, tSpring);
 
               // Project marker stays dark/charcoal `#111111`
               dummyColor.copy(fgColor);
@@ -1409,8 +1411,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               rotYVal = part.rotSpeedY * t;
               rotZVal = part.rotSpeedZ * t;
 
-              // Shrink completely to zero as it dissolves, starting from 1.3x scale
-              finalScale = (dynamicSmallScale * 1.3) * (1.0 - t * t);
+              // Shrink completely to zero as it dissolves, starting from falling scale
+              finalScale = (dynamicSmallScale * 4.0) * (1.0 - t * t);
 
               // Fade to background color matching clean environment
               const lerpVal = Math.min(1, t * 1.4);

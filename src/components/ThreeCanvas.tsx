@@ -1319,15 +1319,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       rig.scale.setScalar(currentRigScale);
       rig.updateMatrixWorld(true);
 
-      // Dynamically calculate the perfect scale to match the 8px/14px DOM markers exactly
-      const targetSvgSize = isMobile ? 8.0 : 14.0;
-      const visibleHeight = 11.516; // Visible height at y=15, FOV 42
-      const visibleWidth = visibleHeight * (W / H);
-      const targetWorldWidth = targetSvgSize * (visibleWidth / (W || 1));
-      const targetParticleScale = currentRigScale > 0 ? targetWorldWidth / (180.99 * currentRigScale) : 0.024;
-      
-      const dustScale = 0.024;
-
       // 15. Render particle positions
       const mesh = instancedMeshRef.current;
       if (mesh && (mesh as any).customData) {
@@ -1348,8 +1339,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             // Real physics and gravity-acceleration simulation as a function of the scrolling-progress 't'
             const gravityConstant = part.gravityConstant; 
             const initialVelocityY = part.initialVelocityY; 
-            const initialVelocityX = part.driftX; // horizontal launch velocity (fully unscaled for wider screen spread)
-            const initialVelocityZ = part.driftZ; // depth launch velocity
+            const initialVelocityX = part.driftX;
+            const initialVelocityZ = part.driftZ;
 
             // Trajectory integration (s = v0 * t + 0.5 * a * t^2)
             const physX = part.initialX + initialVelocityX * t;
@@ -1364,56 +1355,47 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             let rotYVal = 0;
             let rotZVal = 0;
 
-            let baseScale = THREE.MathUtils.lerp(dustScale, targetParticleScale, t);
-            let finalScale = baseScale;
+            // All particles use the same consistent scale throughout the animation
+            let finalScale = SMALL_SCALE;
             let opacityVal = 1.0;
 
             if (part.isProject) {
-              // High-precision landing glide to project coordinates!
               const proj = projectsRef.current[part.projectIndex];
-              if (!proj) continue; // Safety bounds check for dynamic loading
+              if (!proj) continue;
 
-              
-              // Eased smooth transition using the custom spring-damping physics algorithm
               const tSpring = getSpringWeight(t);
               
-              // Target coordinates mapped to local rig space coordinates
               const targetX = (part.targetX * MAP_SCALE) / currentRigScale;
               const targetY = part.targetY / currentRigScale;
               const targetZ = (part.targetZ * MAP_SCALE) / currentRigScale;
 
-              // Transition gracefully from the physical gravitational path to the exact target coordinate
               x = THREE.MathUtils.lerp(physX, targetX, tSpring);
               y = THREE.MathUtils.lerp(physY, targetY, tSpring);
               z = THREE.MathUtils.lerp(physZ, targetZ, tSpring);
 
-              // Align orientation seamlessly to lie flat on the map blueprint, matching the exact HTML marker rotation at landing
               const targetRotYVal = THREE.MathUtils.degToRad(getProjectRotation(proj.id));
               rotXVal = THREE.MathUtils.lerp(part.rotSpeedX * t, -Math.PI / 2, tSpring); 
               rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, targetRotYVal, tSpring);
               rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
 
-              // Project markers start at dust scale (inside the logo) and grow to precisely match the DOM scale as they land
-              finalScale = THREE.MathUtils.lerp(dustScale, targetParticleScale, tSpring);
+              // Project markers maintain constant SMALL_SCALE — same size as in the logo
+              finalScale = SMALL_SCALE;
 
-              // Project marker stays dark/charcoal `#111111`
               dummyColor.copy(fgColor);
 
               // Swap instantly at 0.70 to avoid white fade
               opacityVal = p >= 0.70 ? 0.0 : 1.0;
             } else {
-              // Ordinary dissolving background particle follows the full simulated gravity track
               x = physX;
               y = physY;
               z = physZ;
 
-              // Spin continuously as they tumble
               rotXVal = part.rotSpeedX * t;
               rotYVal = part.rotSpeedY * t;
               rotZVal = part.rotSpeedZ * t;
 
-              // Shrink completely to zero as it dissolves, starting from the cohesive flying scale
-              finalScale = baseScale * (1.0 - t * t);
+              // Shrink to zero as it dissolves — constant starting size, no ballooning
+              finalScale = SMALL_SCALE * (1.0 - t * t);
 
               // Fade to background color matching clean environment
               const lerpVal = Math.min(1, t * 1.4);

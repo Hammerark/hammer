@@ -1359,51 +1359,27 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             let finalScale = SMALL_SCALE;
             let opacityVal = 1.0;
 
-            if (part.isProject) {
-              const proj = projectsRef.current[part.projectIndex];
-              if (!proj) continue;
+            // ALL particles follow identical physics — no special 3D landing targets
+            // The HTML map markers handle the visual "landing" with their correct CSS positions
+            x = physX;
+            y = physY;
+            z = physZ;
 
-              const tSpring = getSpringWeight(t);
-              
-              const targetX = (part.targetX * MAP_SCALE) / currentRigScale;
-              const targetY = part.targetY / currentRigScale;
-              const targetZ = (part.targetZ * MAP_SCALE) / currentRigScale;
+            rotXVal = part.rotSpeedX * t;
+            rotYVal = part.rotSpeedY * t;
+            rotZVal = part.rotSpeedZ * t;
 
-              x = THREE.MathUtils.lerp(physX, targetX, tSpring);
-              y = THREE.MathUtils.lerp(physY, targetY, tSpring);
-              z = THREE.MathUtils.lerp(physZ, targetZ, tSpring);
+            // Shrink smoothly to zero as they settle
+            finalScale = SMALL_SCALE * (1.0 - t * t);
 
-              const targetRotYVal = THREE.MathUtils.degToRad(getProjectRotation(proj.id));
-              rotXVal = THREE.MathUtils.lerp(part.rotSpeedX * t, -Math.PI / 2, tSpring); 
-              rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, targetRotYVal, tSpring);
-              rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
+            // Fade to white background
+            const lerpVal = Math.min(1, t * 1.4);
+            dummyColor.copy(fgColor).lerp(bgColor, lerpVal);
 
-              // Project markers maintain constant SMALL_SCALE — same size as in the logo
-              finalScale = SMALL_SCALE;
+            // Gently fade opacity
+            opacityVal = Math.max(0, 1.0 - t * t * 1.3);
 
-              dummyColor.copy(fgColor);
 
-              // Swap instantly at 0.70 to avoid white fade
-              opacityVal = p >= 0.70 ? 0.0 : 1.0;
-            } else {
-              x = physX;
-              y = physY;
-              z = physZ;
-
-              rotXVal = part.rotSpeedX * t;
-              rotYVal = part.rotSpeedY * t;
-              rotZVal = part.rotSpeedZ * t;
-
-              // Shrink to zero as it dissolves — constant starting size, no ballooning
-              finalScale = SMALL_SCALE * (1.0 - t * t);
-
-              // Fade to background color matching clean environment
-              const lerpVal = Math.min(1, t * 1.4);
-              dummyColor.copy(fgColor).lerp(bgColor, lerpVal);
-
-              // Gently fade opacity as it dissolves
-              opacityVal = Math.max(0, 1.0 - t * t * 1.3);
-            }
 
             // Apply opening animation (reversed explosion)
             if (openingFactor > 0.001) {
@@ -1449,11 +1425,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         Object.keys(actualMarkersRef.current).forEach((projId) => {
           const el = actualMarkersRef.current[projId];
           if (el) {
-            const isVisible = p >= 0.70;
-            const targetOpacity = isVisible ? "1" : "0";
-            if (el.style.opacity !== targetOpacity) {
-              el.style.opacity = targetOpacity;
-              el.style.pointerEvents = isVisible ? "auto" : "none";
+            // Smooth fade-in: markers gradually appear from p=0.55 to p=0.70
+            const markerOpacity = p < 0.55 ? 0 : p > 0.70 ? 1 : (p - 0.55) / 0.15;
+            const opStr = String(Math.round(markerOpacity * 100) / 100);
+            if (el.style.opacity !== opStr) {
+              el.style.opacity = opStr;
+              el.style.pointerEvents = markerOpacity > 0.5 ? "auto" : "none";
             }
           }
         });

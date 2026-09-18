@@ -1713,10 +1713,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         className="absolute inset-0 z-30 flex items-center justify-center bg-white transition-opacity duration-300 overflow-hidden select-none"
       >
         {/* White Fade Overlays inside the map container to frame the actual map bounds */}
-        <div className="absolute inset-x-0 top-0 h-24 md:h-32 bg-gradient-to-b from-white via-white/80 to-white/0 pointer-events-none z-50" />
-        <div className="absolute inset-x-0 bottom-0 h-32 md:h-48 bg-gradient-to-t from-white via-white/80 to-white/0 pointer-events-none z-50" />
-        <div className="absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-white via-white/80 to-white/0 pointer-events-none z-50" />
-        <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-white via-white/80 to-white/0 pointer-events-none z-50" />
+        <div className="absolute inset-x-0 top-0 h-16 md:h-24 bg-gradient-to-b from-white to-transparent pointer-events-none z-50" />
+        <div className="absolute inset-x-0 bottom-0 h-16 md:h-24 bg-gradient-to-t from-white to-transparent pointer-events-none z-50" />
+        <div className="absolute inset-y-0 left-0 w-16 md:w-24 bg-gradient-to-r from-white to-transparent pointer-events-none z-50" />
+        <div className="absolute inset-y-0 right-0 w-16 md:w-24 bg-gradient-to-l from-white to-transparent pointer-events-none z-50" />
 
         {/* INTERMEDIATE FIXED WRAPPER for interaction and overflow clipping */}
         <div
@@ -1725,8 +1725,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           style={{
             pointerEvents: "none",
             touchAction: "none", // Traps touch for map panning, leaving white margins for page scrolling
-            width: "90vw",
-            maxHeight: isMobileSize ? "75dvh" : "none",
+            width: isMobileSize ? "100vw" : "90vw",
+            maxHeight: isMobileSize ? "90dvh" : "none",
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -1745,10 +1745,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               transformOrigin: "center",
               scale: scaleMotion,
               width: isMobileSize && typeof window !== "undefined" && window.innerHeight > window.innerWidth 
-                ? "calc(75dvh * (2048 / 1270))" 
+                ? "calc(90dvh * (2048 / 1270))" 
                 : "90vw",
               height: isMobileSize && typeof window !== "undefined" && window.innerHeight > window.innerWidth 
-                ? "75dvh" 
+                ? "90dvh" 
                 : "calc(90vw * (1270 / 2048))"
             }}
             animate={{

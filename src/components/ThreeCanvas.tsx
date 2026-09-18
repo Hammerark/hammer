@@ -1364,7 +1364,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             let rotYVal = 0;
             let rotZVal = 0;
 
-            let finalScale = dustScale * 1.3;
+            let baseScale = THREE.MathUtils.lerp(dustScale, targetParticleScale, t);
+            let finalScale = baseScale;
             let opacityVal = 1.0;
 
             if (part.isProject) {
@@ -1411,8 +1412,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               rotYVal = part.rotSpeedY * t;
               rotZVal = part.rotSpeedZ * t;
 
-              // Shrink completely to zero as it dissolves, starting from dust scale
-              finalScale = (dustScale * 1.3) * (1.0 - t * t);
+              // Shrink completely to zero as it dissolves, starting from the cohesive flying scale
+              finalScale = baseScale * (1.0 - t * t);
 
               // Fade to background color matching clean environment
               const lerpVal = Math.min(1, t * 1.4);
@@ -1462,12 +1463,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
 
         // 16. Update Actual HTML Map Markers
-        const targetMarkerOpacity = p >= 0.70 ? "1" : "0";
-        projectsRef.current.forEach((proj) => {
-          const actualMarker = actualMarkersRef.current[proj.id];
-          if (actualMarker && actualMarker.style.opacity !== targetMarkerOpacity) {
-            actualMarker.style.opacity = targetMarkerOpacity;
-            actualMarker.style.pointerEvents = p >= 0.70 ? "auto" : "none";
+        // Optimize DOM style updates to prevent layout thrashing and choppiness
+        Object.keys(actualMarkersRef.current).forEach((projId) => {
+          const el = actualMarkersRef.current[projId];
+          if (el) {
+            const isVisible = p >= 0.70;
+            const targetOpacity = isVisible ? "1" : "0";
+            if (el.style.opacity !== targetOpacity) {
+              el.style.opacity = targetOpacity;
+              el.style.pointerEvents = isVisible ? "auto" : "none";
+            }
           }
         });
         

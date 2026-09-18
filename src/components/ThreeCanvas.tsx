@@ -696,8 +696,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       antialias: true,
       alpha: true, // Transparent WebGL canvas to show HTML map underneath
     });
-    // Boost pixel ratio on mobile slightly to fix blurriness without killing performance
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileSizeConfig ? 1.5 : 2.0));
+    // Boost pixel ratio on desktop, but cap at 1.0 on mobile to guarantee smooth 60fps framerate for heavy particles
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileSizeConfig ? 1.0 : 1.5));
     renderer.setSize(width, height);
     renderer.setClearColor(0x000000, 0);
 
@@ -1694,6 +1694,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             style={{
               cursor: "none",
               transformOrigin: "center",
+              willChange: "transform",
+              backfaceVisibility: "hidden",
               scale: scaleMotion,
               width: isMobileSize && typeof window !== "undefined" && window.innerHeight > window.innerWidth 
                 ? "calc(75dvh * (2048 / 1270))" 
@@ -1960,10 +1962,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         </div>
 
           {/* White Fade Overlays fixed to the screen edges to provide a permanent soft vignette over the map */}
-          <div className="absolute inset-x-0 top-0 h-[5%] bg-gradient-to-b from-white to-transparent pointer-events-none z-50" />
-          <div className="absolute inset-x-0 bottom-0 h-[5%] bg-gradient-to-t from-white to-transparent pointer-events-none z-50" />
-          <div className="absolute inset-y-0 left-0 w-[10%] bg-gradient-to-r from-white to-transparent pointer-events-none z-50" />
-          <div className="absolute inset-y-0 right-0 w-[10%] bg-gradient-to-l from-white to-transparent pointer-events-none z-50" />
+          <div className="absolute inset-x-0 top-0 h-24 md:h-32 bg-gradient-to-b from-white via-white/80 to-white/0 pointer-events-none z-50" />
+          <div className="absolute inset-x-0 bottom-0 h-32 md:h-48 bg-gradient-to-t from-white via-white/80 to-white/0 pointer-events-none z-50" />
+          <div className="absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-white via-white/80 to-white/0 pointer-events-none z-50" />
+          <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-white via-white/80 to-white/0 pointer-events-none z-50" />
 
           {/* Sleek Minimalist Architectural Map Controls Panel */}
           <div className={`hidden absolute bottom-8 right-8 z-40 flex flex-col gap-2 items-center ${scrollProgress < 0.65 ? "pointer-events-none" : "pointer-events-auto"} ${isMobileSize && selectedMobileProject ? "hidden" : ""} select-none`}>

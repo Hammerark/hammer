@@ -1319,27 +1319,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       // 14. Adjust scaling of letters as viewport shifts (mobile zoom adjustment)
       const scaleBoost = (isMobile ? 0.42 : 0.55) * 0.35 * 1.30 * 1.1875;
       const baseRigScale = (16 / (Math.max(W, H) || 1)) * scaleBoost;
-      let currentRigScale = baseRigScale * (scaleMotion.get() / MAP_SCALE);
-      
-      if (mapContainerRef.current && camera) {
-        // Auto-correction for perfect 3D -> DOM pixel matching
-        rig.scale.setScalar(currentRigScale);
-        rig.updateMatrixWorld(true);
-        
-        const vec = new THREE.Vector3();
-        vec.set(-8, 0, 0).applyMatrix4(rig.matrixWorld).project(camera);
-        const screenX1 = (vec.x * 0.5 + 0.5) * W;
-        
-        vec.set(8, 0, 0).applyMatrix4(rig.matrixWorld).project(camera);
-        const screenX2 = (vec.x * 0.5 + 0.5) * W;
-        
-        const current3DWidth = screenX2 - screenX1;
-        const target3DWidth = mapContainerRef.current.getBoundingClientRect().width;
-        
-        if (current3DWidth > 0 && target3DWidth > 0) {
-           currentRigScale *= (target3DWidth / current3DWidth);
-        }
-      }
+      const currentRigScale = baseRigScale * (scaleMotion.get() / MAP_SCALE);
       
       rig.scale.setScalar(currentRigScale);
       rig.updateMatrixWorld(true);

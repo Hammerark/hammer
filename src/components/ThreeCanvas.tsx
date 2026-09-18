@@ -637,7 +637,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
   // Configuration
   const isMobileSizeConfig = typeof window !== "undefined" && window.innerWidth <= 767;
-  const LAYERS = isMobileSizeConfig ? 8 : 14;
+  const LAYERS = isMobileSizeConfig ? 12 : 14;
   const LAYER_SPACING = 0.35; // Wider spacing for elegant density
   const GRID_STEP_X = W / 14;
   const GRID_STEP_Y = H / 12;
@@ -1181,11 +1181,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const ease = Math.sin((t * Math.PI) / 2); // easeOutSine makes landing less abrupt
           p = ease * 0.85;
 
-          // Seamless auto-zoom: From t=0.5 to t=1.0, zoom in by 35% smoothly
+          // Seamless auto-zoom: From t=0.5 to t=1.0, zoom in by 65% smoothly
           if (t > 0.5) {
             const zoomT = (t - 0.5) / 0.5; // normalized 0 to 1
             const easeZoom = Math.sin((zoomT * Math.PI) / 2); // smooth easeOut
-            const targetZoom = getBaseZoom() + 0.35 * easeZoom;
+            const targetZoom = getBaseZoom() + 0.65 * easeZoom;
             scaleMotion.set(targetZoom * MAP_SCALE);
           } else {
             scaleMotion.set(getBaseZoom() * MAP_SCALE);
@@ -1202,7 +1202,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             if (onSequenceComplete) onSequenceComplete();
             
             // Lock in the final zoom state
-            const finalZoom = getBaseZoom() + 0.35;
+            const finalZoom = getBaseZoom() + 0.65;
             scaleMotion.set(finalZoom * MAP_SCALE);
             setZoom(finalZoom); // Ensure React state allows user to interact starting from this zoom
           }
@@ -1219,7 +1219,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (p > 0.5) {
           const zoomT = Math.min(1.0, Math.max(0, (p - 0.5) / 0.35)); // normalized 0 to 1
           const easeZoom = Math.sin((zoomT * Math.PI) / 2); // smooth easeOut
-          const targetZoom = getBaseZoom() + 0.35 * easeZoom;
+          const targetZoom = getBaseZoom() + 0.65 * easeZoom;
           scaleMotion.set(targetZoom * MAP_SCALE);
         } else {
           scaleMotion.set(getBaseZoom() * MAP_SCALE);
@@ -1229,7 +1229,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           sequenceStateRef.current = 'map';
           setSequenceState('map');
           if (onSequenceComplete) onSequenceComplete();
-          const finalZoom = getBaseZoom() + 0.35;
+          const finalZoom = getBaseZoom() + 0.65;
           setZoom(finalZoom);
         }
       } else {
@@ -1471,7 +1471,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           if (el) {
             // Smooth fade-in: markers gradually appear from p=0.55 to p=0.70
             const markerOpacity = p < 0.55 ? 0 : p > 0.70 ? 1 : (p - 0.55) / 0.15;
-            const opStr = String(Math.round(markerOpacity * 100) / 100);
+            // Round to 1 decimal place (10 steps) instead of 100 steps to massively reduce mobile DOM layout thrashing and stutter
+            const opStr = String(Math.round(markerOpacity * 10) / 10);
             if (el.style.opacity !== opStr) {
               el.style.opacity = opStr;
               el.style.pointerEvents = markerOpacity > 0.5 ? "auto" : "none";

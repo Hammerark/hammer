@@ -81,7 +81,8 @@ interface ThreeCanvasProps {
   activeProject: Project | null;
   onHClick?: () => void;
   hasRequestedMotion?: boolean;
-  hasStartedSequence?: boolean;
+  sequenceStartToken?: string | null;
+  onSequenceComplete?: () => void;
 }
 
 
@@ -89,6 +90,8 @@ interface ThreeCanvasProps {
 let diagFrames: any[] = [];
 let diagActive = false;
 let diagStartTime = 0;
+let diagPhaseTimes = { preparing: 0, playing: 0 };
+let reportString = "";
 
 export const startDiagnostics = () => {
   if (typeof window === 'undefined' || new URLSearchParams(window.location.search).get("startDiagnostics") !== "true") return;
@@ -96,65 +99,61 @@ export const startDiagnostics = () => {
   diagFrames = [];
   diagActive = true;
   diagStartTime = performance.now();
+  diagPhaseTimes = { preparing: 0, playing: 0 };
+  reportString = "Måler...";
   console.log("Diagnostics started");
 };
 
 export const stopDiagnostics = () => {
   if (!diagActive) return;
   diagActive = false;
-  analyzeDiagnostics();
-};
-
-const analyzeDiagnostics = () => {
-  if (diagFrames.length < 2) {
-    console.log("Not enough frames");
-    return;
-  }
   
-  let maxDelta = 0;
-  let maxMath = 0;
-  let maxRender = 0;
-  let pJumps: number[] = [];
-  let deltas: number[] = [];
+  if (diagFrames.length < 2) return;
   
-  for (let i = 1; i < diagFrames.length; i++) {
-    const prev = diagFrames[i-1];
-    const curr = diagFrames[i];
-    
-    const delta = curr.time - prev.time;
-    deltas.push(delta);
-    if (delta > maxDelta) maxDelta = delta;
-    if (curr.math > maxMath) maxMath = curr.math;
-    if (curr.render > maxRender) maxRender = curr.render;
-    
-    const pJump = curr.p - prev.p;
-    if (pJump > 0) pJumps.push(pJump);
-  }
+  const times = diagFrames.map(f => f.time);
+  let deltas = [];
+  for(let i=1; i<times.length; i++) deltas.push(times[i]-times[i-1]);
+  deltas.sort((a,b)=>a-b);
   
-  deltas.sort((a, b) => a - b);
-  pJumps.sort((a, b) => a - b);
+  const renderTimes = diagFrames.map(f => f.render).sort((a,b)=>a-b);
+  const mathTimes = diagFrames.map(f => f.math).sort((a,b)=>a-b);
   
-  const medianDelta = deltas[Math.floor(deltas.length / 2)];
-  const p95Delta = deltas[Math.floor(deltas.length * 0.95)];
+  const getP = (arr: number[], p: number) => arr[Math.floor(arr.length * p)] || 0;
   
-  const medianPJump = pJumps.length > 0 ? pJumps[Math.floor(pJumps.length / 2)] : 0;
-  const maxPJump = pJumps.length > 0 ? pJumps[pJumps.length - 1] : 0;
+  const drops16 = deltas.filter(d => d > 16.7).length;
+  const drops33 = deltas.filter(d => d > 33.3).length;
+  const drops50 = deltas.filter(d => d > 50.0).length;
   
   const report = {
-    totalFrames: diagFrames.length,
-    medianFrameTime: medianDelta.toFixed(2) + "ms",
-    p95FrameTime: p95Delta.toFixed(2) + "ms",
-    worstFrameTime: maxDelta.toFixed(2) + "ms",
-    worstMathTime: maxMath.toFixed(2) + "ms",
-    worstRenderTime: maxRender.toFixed(2) + "ms",
-    medianPJump: medianPJump.toFixed(5),
-    maxPJump: maxPJump.toFixed(5)
+    device: navigator.userAgent,
+    frames: diagFrames.length,
+    phaseTimes: {
+      preparing: diagPhaseTimes.preparing.toFixed(1) + "ms",
+      playing: diagPhaseTimes.playing.toFixed(1) + "ms"
+    },
+    frameDeltas: {
+      p50: getP(deltas, 0.5).toFixed(2) + "ms",
+      p95: getP(deltas, 0.95).toFixed(2) + "ms",
+      worst: deltas[deltas.length-1].toFixed(2) + "ms",
+    },
+    droppedFrames: {
+      ">16.7ms": drops16,
+      ">33.3ms": drops33,
+      ">50.0ms": drops50
+    },
+    cpuTime_math: {
+      p50: getP(mathTimes, 0.5).toFixed(2) + "ms",
+      worst: mathTimes[mathTimes.length-1].toFixed(2) + "ms"
+    },
+    cpuTime_render: {
+      p50: getP(renderTimes, 0.5).toFixed(2) + "ms",
+      worst: renderTimes[renderTimes.length-1].toFixed(2) + "ms"
+    }
   };
   
-  console.log("DIAGNOSTICS REPORT:", JSON.stringify(report, null, 2));
-  
-  // Expose to window for automated extraction
   (window as any).diagnosticReport = report;
+  reportString = JSON.stringify(report, null, 2);
+  console.log("Sequence Diagnostics:", report);
 };
 // --- DIAGNOSTICS END ---
 
@@ -165,7 +164,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   activeProject,
   onHClick,
   hasRequestedMotion = false,
-  hasStartedSequence = false
+  sequenceStartToken = null,
+  onSequenceComplete
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -242,10 +242,68 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     hasRequestedMotionRef.current = hasRequestedMotion;
   }, [hasRequestedMotion]);
   
-  const hasStartedSequenceRef = useRef(hasStartedSequence);
+  type SequenceState = 'idle' | 'preparing' | 'playing' | 'map';
+  const [sequenceState, setSequenceState] = useState<SequenceState>('idle');
+  const sequenceStateRef = useRef<SequenceState>('idle');
+  const sequenceStartTsRef = useRef<number | null>(null);
+  const [decodeError, setDecodeError] = useState(false);
+
   useEffect(() => {
-    hasStartedSequenceRef.current = hasStartedSequence;
-  }, [hasStartedSequence]);
+    // Scroll restoration/reload check
+    if (sequenceStateRef.current === 'idle' && scrollProgress >= 0.85 && !sequenceStartToken) {
+      sequenceStateRef.current = 'map';
+      setSequenceState('map');
+      setZoom(getTargetZoom());
+    }
+  }, []);
+
+  const handleRetryDecode = () => {
+    setDecodeError(false);
+    startSequence();
+  };
+
+  const startSequence = () => {
+    if (sequenceStateRef.current !== 'idle') return;
+    
+    sequenceStateRef.current = 'preparing';
+    setSequenceState('preparing');
+    if (typeof window !== 'undefined') startDiagnostics();
+
+    const startTime = performance.now();
+
+    const img = new Image();
+    img.src = osloNolliMap;
+    // We attach decode promise to component state so unmount can ignore it
+    return img.decode()
+       .then(() => {
+          diagPhaseTimes.preparing = performance.now() - startTime;
+          sequenceStateRef.current = 'playing';
+          setSequenceState('playing');
+          sequenceStartTsRef.current = performance.now();
+       })
+       .catch(err => {
+          console.error("Decode failed", err);
+          setSequenceState('idle');
+          sequenceStateRef.current = 'idle';
+          setDecodeError(true);
+          if (onSequenceComplete) onSequenceComplete(); // Release App lock on error
+       });
+  };
+
+  useEffect(() => {
+    let isCancelled = false;
+    if (sequenceStartToken && sequenceStateRef.current === 'idle') {
+      const promise = startSequence();
+      if (promise) {
+         promise.finally(() => {
+            if (isCancelled) {
+               // Do nothing if unmounted
+            }
+         });
+      }
+    }
+    return () => { isCancelled = true; };
+  }, [sequenceStartToken]);
   
   const [activeFilter, setActiveFilter] = useState("ALLE");
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
@@ -264,22 +322,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scaleMotion = useMotionValue(getBaseZoom() * MAP_SCALE);
 
   useEffect(() => {
-    // Preload and decode the massive map image early
-    const img = new Image();
-    img.src = osloNolliMap;
-    img.decode().catch(() => {});
-  }, []);
-
-  useEffect(() => {
     // Let tick() control the motion value during the sequence
-    if (!(window as any).hammerSequenceFinished) return;
+    if (sequenceState !== 'map') return;
     
     animate(scaleMotion, zoom * MAP_SCALE, {
       type: "tween",
       duration: isDragging ? 0 : (isMapInteracting ? 0.4 : 1.5),
       ease: "easeInOut"
     });
-  }, [zoom, isDragging, isMapInteracting]);
+  }, [zoom, isDragging, isMapInteracting, sequenceState]);
 
   // Wheel zoom injection logic
   useEffect(() => {
@@ -1094,21 +1145,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     // 11. Core Animation loop
     let lastTime = performance.now();
-    let smoothProgress = scrollRef.current;
-    let animationFrameId = 0;
+    let smoothProgress = 0;
     let startTime: number | null = null;
-    
-    // Internal Sequence State for time-based decoupling
-    let isPlayingSequence = false;
-    let sequenceStartTs: number | null = null;
-    let sequenceFinished = false;
-    let resetArmed = false;
-    let hasAutostartedOnMotion = false;
+    let animationFrameId: number;
+    let hasFinalizedMapState = false;
 
     const tick = () => {
       animationFrameId = requestAnimationFrame(tick);
-      let frameData: any = { time: performance.now(), p: 0, math: 0, render: 0 };
-      const mathStart = performance.now();
       
       const currentTime = performance.now();
       if (startTime === null) startTime = currentTime;
@@ -1125,69 +1168,84 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       lastTime = currentTime;
 
       const isMobile = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 767);
-
-      // START TIME-BASED SEQUENCE LOGIC
-      if (rawP > 0.05) resetArmed = true;
-
-      if (rawP < 0.01 && resetArmed) {
-        sequenceFinished = false;
-        (window as any).hammerSequenceFinished = false;
-        isPlayingSequence = false;
-        autoZoomTriggeredRef.current = false;
-        resetArmed = false;
-      }
-
-      if ((rawP > 0.01 || hasStartedSequenceRef.current) && !isPlayingSequence && !sequenceFinished && rawP < 0.99) {
-        isPlayingSequence = true;
-        sequenceStartTs = currentTime;
-        (window as any).hammerSequenceFinished = false;
-        if (typeof window !== 'undefined') startDiagnostics();
-      }
-
+      
       let p = smoothProgress;
 
-      if (isPlayingSequence && sequenceStartTs !== null) {
-        const seqElapsed = currentTime - sequenceStartTs;
-        let forcedP = 0;
-        
+      // START STATE MACHINE LOGIC
+      if (sequenceStateRef.current === 'playing' && sequenceStartTsRef.current !== null) {
+        const seqElapsed = currentTime - sequenceStartTsRef.current;
         const TOTAL_DURATION = 3500;
         
         if (seqElapsed < TOTAL_DURATION) {
           const t = seqElapsed / TOTAL_DURATION;
           const ease = Math.sin((t * Math.PI) / 2); // easeOutSine makes landing less abrupt
-          forcedP = 0.0 + ease * 0.85;
-
-          const easeZoom = -(Math.cos(Math.PI * t) - 1) / 2; // easeInOutSine
-          const currentZoom = 1.0 + easeZoom * (getTargetZoom() - 1.0);
-          scaleMotion.set(currentZoom * MAP_SCALE);
-        } 
-        // Finish Sequence
-        else {
+          p = ease * 0.85;
+        } else {
+          // Finish Sequence
+          p = 0.85;
+          diagPhaseTimes.playing = currentTime - sequenceStartTsRef.current;
+          sequenceStateRef.current = 'map';
+          setSequenceState('map');
+          
           if (!autoZoomTriggeredRef.current) {
             autoZoomTriggeredRef.current = true;
-            setZoom(getTargetZoom()); // Sync Map Zoom transition
+            if (onSequenceComplete) onSequenceComplete();
+            setZoom(getTargetZoom()); // Hand off to framer animate
           }
-          if (forcedP !== 0.85 && typeof window !== 'undefined' && diagActive) stopDiagnostics();
-          forcedP = 0.85;
-          isPlayingSequence = false;
-          sequenceFinished = true;
-          (window as any).hammerSequenceFinished = true;
+          if (typeof window !== 'undefined' && diagActive) stopDiagnostics();
         }
-        
-        smoothProgress = forcedP;
-        p = forcedP;
-      } else {
-        // Fallback to normal scroll when sequence is done or not started
-        if (sequenceFinished) {
-          smoothProgress = 0.85;
-        } else {
-          const lerpSpeed = isMobile ? 12.0 : 4.2;
-          smoothProgress += (rawP - smoothProgress) * (1 - Math.exp(-lerpSpeed * dt));
-        }
+      } else if (sequenceStateRef.current === 'map') {
+        p = 0.85;
+      } else if (!isMobile) {
+        // Desktop scrub
+        smoothProgress += (rawP - smoothProgress) * dt * 5.0;
         p = smoothProgress;
+        
+        if (p >= 0.85 ) {
+          sequenceStateRef.current = 'map';
+          setSequenceState('map');
+          if (onSequenceComplete) onSequenceComplete();
+          setZoom(getTargetZoom());
+        }
+      } else {
+        // Mobile idle or preparing MUST hold p=0
+        p = 0;
+        smoothProgress = 0;
       }
-      // END TIME-BASED SEQUENCE LOGIC
-      frameData.p = p;
+
+      // Calculate Map Zoom based on unified 'p'
+      if (sequenceStateRef.current !== 'map') {
+        if (p >= 0.70 && p <= 0.85) {
+           const zoomP = (p - 0.70) / 0.15; // 0.0 to 1.0
+           const easeZoom = -(Math.cos(Math.PI * zoomP) - 1) / 2;
+           const currentZoom = 1.0 + easeZoom * (getTargetZoom() - 1.0);
+           scaleMotion.set(currentZoom * MAP_SCALE);
+        } else if (p < 0.70) {
+           scaleMotion.set(1.0 * MAP_SCALE);
+        }
+      }
+
+      // CULLING OPTIMIZATION: Halt WebGL rendering when map is stationary
+      let shouldRenderWebGL = true;
+      if (sequenceStateRef.current === 'map') {
+         // Force camera position just in case
+         camera.position.set(0, 15.0, 0.0);
+         camera.lookAt(0, 0.0, 0);
+         // Skip WebGL render!
+         shouldRenderWebGL = false;
+         
+         // On mobile, if we are in map state, we can skip the heavy math loop ENTIRELY
+         // But only if we have run it AT LEAST ONCE to finalize the DOM markers!
+         if (isMobile && hasFinalizedMapState) {
+            return; // completely skip frame!
+         }
+         hasFinalizedMapState = true;
+      } else {
+         hasFinalizedMapState = false;
+      }
+      
+      let frameData: any = { time: performance.now(), p, math: 0, render: 0 };
+      const mathStart = performance.now();
 
       let floatX = 0;
       let floatY = 0;
@@ -1230,17 +1288,17 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const u = (p - 0.05) / 0.35; // normalized 0 to 1
         const uEase = u * u * (3 - 2 * u); // smoothstep
 
-        // Camera shifts from (0, camY, camZ) to bird-eye site map view (0, 16.5, 9.5) looking at (0, -4.5, 0)
+        // Camera shifts from (0, camY, camZ) to perfect bird-eye site map view (0, 15.0, 0) looking at (0, 0, 0)
         camera.position.x = THREE.MathUtils.lerp(0, 0, uEase);
         camera.position.y = THREE.MathUtils.lerp(camY, 15.0, uEase);
-        camera.position.z = THREE.MathUtils.lerp(camZ, 11.5, uEase);
+        camera.position.z = THREE.MathUtils.lerp(camZ, 0.0, uEase);
         
-        camTargetY = THREE.MathUtils.lerp(0, -4.8, uEase);
+        camTargetY = THREE.MathUtils.lerp(0, 0.0, uEase);
         camera.lookAt(0, camTargetY, 0);
       } else {
         // Map State: Stationary blueprint surveyor view fully settled
-        camera.position.set(0, 15.0, 11.5);
-        camera.lookAt(0, -4.8, 0);
+        camera.position.set(0, 15.0, 0.0);
+        camera.lookAt(0, 0.0, 0);
       }
 
       // 13. Reveal architectural site rings and grids during the scroll sequence
@@ -1259,10 +1317,30 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
       */
       // 14. Adjust scaling of letters as viewport shifts (mobile zoom adjustment)
-      // Base size of H formation is calibrated with a beautifully balanced scale boost, adjusted down by 5%
-      // Reduce desktop visual size by ~26% (0.55 instead of 0.75) as requested
       const scaleBoost = (isMobile ? 0.42 : 0.55) * 0.35 * 1.30 * 1.1875;
-      const currentRigScale = (16 / (Math.max(W, H) || 1)) * scaleBoost;
+      const baseRigScale = (16 / (Math.max(W, H) || 1)) * scaleBoost;
+      let currentRigScale = baseRigScale * (scaleMotion.get() / MAP_SCALE);
+      
+      if (mapContainerRef.current && camera) {
+        // Auto-correction for perfect 3D -> DOM pixel matching
+        rig.scale.setScalar(currentRigScale);
+        rig.updateMatrixWorld(true);
+        
+        const vec = new THREE.Vector3();
+        vec.set(-8, 0, 0).applyMatrix4(rig.matrixWorld).project(camera);
+        const screenX1 = (vec.x * 0.5 + 0.5) * W;
+        
+        vec.set(8, 0, 0).applyMatrix4(rig.matrixWorld).project(camera);
+        const screenX2 = (vec.x * 0.5 + 0.5) * W;
+        
+        const current3DWidth = screenX2 - screenX1;
+        const target3DWidth = mapContainerRef.current.getBoundingClientRect().width;
+        
+        if (current3DWidth > 0 && target3DWidth > 0) {
+           currentRigScale *= (target3DWidth / current3DWidth);
+        }
+      }
+      
       rig.scale.setScalar(currentRigScale);
       rig.updateMatrixWorld(true);
 
@@ -1429,19 +1507,20 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
 
-      // CULLING OPTIMIZATION: Halt completely when 3D is finished!
       frameData.math = performance.now() - mathStart;
+      
       const renderStart = performance.now();
-      if (p < 0.85) {
+      if (shouldRenderWebGL && rendererRef.current && sceneRef.current && cameraRef.current) {
         if (containerRef.current) containerRef.current.style.visibility = "visible";
-        renderer.autoClear = true;
-        renderer.render(scene, camera);
+        rendererRef.current.render(sceneRef.current, cameraRef.current);
       } else {
-        // Hide WebGL canvas completely to avoid leaving artifacts when sequence is complete
         if (containerRef.current) containerRef.current.style.visibility = "hidden";
       }
       frameData.render = performance.now() - renderStart;
-      if (diagActive) diagFrames.push(frameData);
+      
+      if (diagActive) {
+        diagFrames.push(frameData);
+      }
     };
 
     tick();
@@ -1563,7 +1642,31 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     <div className="relative w-full h-full select-none overflow-hidden bg-white">
 
 
-      {/* Three.js canvas container */}
+      {/* Diagnostics Overlay */}
+      {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get("startDiagnostics") === "true" && reportString && (
+        <div className="fixed top-4 left-4 z-50 bg-black/80 text-green-400 p-4 text-xs font-mono rounded max-w-sm overflow-auto max-h-[80vh] border border-green-500/30 backdrop-blur pointer-events-auto shadow-xl">
+          <h3 className="text-white font-bold mb-2">Sequence Diagnostics</h3>
+          <p className="text-white/70 mb-2">Note: RenderTime is CPU dispatch only. Actual GPU compositing time is unmeasurable in JS.</p>
+          <pre className="whitespace-pre-wrap">{reportString}</pre>
+        </div>
+      )}
+      
+      {/* Decode Error Overlay */}
+      {decodeError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 pointer-events-auto">
+          <div className="text-center p-8 bg-neutral-900 rounded-xl max-w-sm border border-neutral-800">
+            <p className="text-red-400 mb-4">Kartet kunne ikke lastes ned eller dekodes skikkelig.</p>
+            <button 
+              onClick={handleRetryDecode}
+              className="px-6 py-3 bg-white text-black font-semibold rounded hover:bg-neutral-200 transition-colors"
+            >
+              Prøv på nytt
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Interactive Map Container */}
       <div 
         id="blyHBg" 
         ref={containerRef} 

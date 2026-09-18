@@ -33,7 +33,7 @@ export default function App() {
     }
     return false;
   });
-  const [hasStartedSequence, setHasStartedSequence] = useState(false);
+  const [startId, setStartId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [nextPage, setNextPage] = useState<PageId | null>(null);
@@ -58,7 +58,7 @@ export default function App() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (activePage === "hjem" && scrollProgress < 0.1) {
-      if (!isMobile || hasStartedSequence) {
+      if (!isMobile || startId !== null) {
         timer = setTimeout(() => {
           setShowPromptText(true);
         }, 3000);
@@ -69,7 +69,7 @@ export default function App() {
       setShowPromptText(false);
     }
     return () => clearTimeout(timer);
-  }, [activePage, scrollProgress, isMobile, hasStartedSequence]);
+  }, [activePage, scrollProgress, isMobile, startId]);
 
   useEffect(() => {
     if (activePage === "hjem") {
@@ -246,53 +246,26 @@ export default function App() {
 
   const handleHClick = () => {
     if (!scrollTrackRef.current || isAutoScrollingRef.current) return;
-    const rect = scrollTrackRef.current.getBoundingClientRect();
-    // trackHeight is the total scrollable area for this track
-    const trackHeight = rect.height - window.innerHeight;
     
-    // Fully automated scroll to the very end of the track (1.0)
-    // This triggers the full cinematic sequence: explosion -> rain -> map fade -> auto-zoom
-    const targetScrollY = 1.0 * trackHeight;
-    const startScrollY = window.scrollY;
-    const distance = targetScrollY - startScrollY;
-    
-    // Elegant, cinematic duration (Synchronized precisely with the 4.5s sequence in ThreeCanvas)
-    const duration = 4500;
-    let startTime: number | null = null;
+    // Lock scroll natively to prevent user from interfering during sequence
     isAutoScrollingRef.current = true;
+    // Tell ThreeCanvas to start the sequence
+    setStartId(Date.now().toString());
+  };
 
-    // Ultra-smooth sine easing ensures it doesn't jerk/stutter at start and end
-    const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
-
-    const animateScroll = (currentTime: number) => {
-      if (startTime === null) startTime = currentTime;
-      const timeElapsed = currentTime - startTime;
-      const progress = Math.min(timeElapsed / duration, 1);
-
-      window.requestAnimationFrame(() => {
-        window.scrollTo(0, startScrollY + distance * easeInOutSine(progress));
-      });
-
-      if (timeElapsed < duration) {
-        requestAnimationFrame(animateScroll);
-      } else {
-        let maxFrames = 60 * 5; // 5 seconds max fallback
-        const checkDone = () => {
-          maxFrames--;
-          if ((window as any).hammerSequenceFinished || maxFrames <= 0) {
-            isAutoScrollingRef.current = false;
-          } else {
-            requestAnimationFrame(checkDone);
-          }
-        };
-        requestAnimationFrame(checkDone);
-      }
-    };
-
-    requestAnimationFrame(animateScroll);
+  const handleSequenceComplete = () => {
+    if (scrollTrackRef.current) {
+      const rect = scrollTrackRef.current.getBoundingClientRect();
+      const trackHeight = rect.height - window.innerHeight;
+      window.scrollTo({ top: window.scrollY + rect.top + trackHeight, behavior: "instant" as ScrollBehavior });
+      isAutoScrollingRef.current = false;
+      setScrollProgress(1.0);
+    }
+    setStartId(null);
   };
 
   const handlePageChange = (page: PageId, options?: { skipMapAnimation?: boolean }) => {
+    setStartId(null);
     if (page === activePage) {
       if (options?.skipMapAnimation) {
         if (scrollTrackRef.current) {
@@ -412,7 +385,7 @@ export default function App() {
                 {scrollProgress < 0.1 && (
                   <>
                     {/* Fullscreen click overlay for mobile motion request */}
-                    {isMobile && !hasStartedSequence && (
+                    {isMobile && startId === null && (
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -429,7 +402,7 @@ export default function App() {
                       transition={{ duration: 0.5, delay: 0.4 }}
                       className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-none"
                     >
-                      {isMobile && !hasStartedSequence ? (
+                      {isMobile && startId === null ? (
                         <motion.button 
                           key="prompt-explore"
                           initial={{ opacity: 0, y: 5 }}
@@ -439,7 +412,6 @@ export default function App() {
                           className="flex flex-col items-center text-center animate-pulse cursor-pointer pointer-events-auto"
                           onClick={() => {
                             triggerHaptic();
-                            setHasStartedSequence(true);
                             if (!hasRequestedMotion) {
                               setHasRequestedMotion(true);
                               localStorage.setItem("hammerMotionPermission", "granted");
@@ -448,6 +420,7 @@ export default function App() {
                                 doc.DeviceOrientationEvent.requestPermission().catch(console.error);
                               }
                             }
+                            handleHClick();
                           }}
                         >
                           <span className="text-[10px] tracking-[0.3em] uppercase font-medium text-neutral-900 mb-1">
@@ -487,7 +460,8 @@ export default function App() {
                     activeProject={activeProject} 
                     onHClick={handleHClick}
                     hasRequestedMotion={hasRequestedMotion}
-                    hasStartedSequence={hasStartedSequence}
+                    sequenceStartToken={startId}
+                    onSequenceComplete={handleSequenceComplete}
                   />
                 </div>
               </div>

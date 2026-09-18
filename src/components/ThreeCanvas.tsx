@@ -1806,7 +1806,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const inverseScale = isTouchDevice ? tooltipScale : 1;
               const btnSize = isTouchDevice ? 44 * inverseScale : 16;
               const btnOffset = isTouchDevice ? -22 * inverseScale : -8;
-              const svgSize = isTouchDevice ? (isDragModeEnabled ? 10 * inverseScale : 8 * inverseScale) : (isDragModeEnabled ? 6.3 : 5.75);
+              const svgSize = isTouchDevice ? (isDragModeEnabled ? 6.3 * inverseScale : 5.5 * inverseScale) : (isDragModeEnabled ? 6.3 : 5.75);
 
               return (
                 <div

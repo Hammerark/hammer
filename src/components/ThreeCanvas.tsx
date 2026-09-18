@@ -1180,6 +1180,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const t = seqElapsed / TOTAL_DURATION;
           const ease = Math.sin((t * Math.PI) / 2); // easeOutSine makes landing less abrupt
           p = ease * 0.85;
+
+          // Seamless auto-zoom: From t=0.5 to t=1.0, zoom in by 35% smoothly
+          if (t > 0.5) {
+            const zoomT = (t - 0.5) / 0.5; // normalized 0 to 1
+            const easeZoom = Math.sin((zoomT * Math.PI) / 2); // smooth easeOut
+            const targetZoom = getBaseZoom() + 0.35 * easeZoom;
+            scaleMotion.set(targetZoom * MAP_SCALE);
+          } else {
+            scaleMotion.set(getBaseZoom() * MAP_SCALE);
+          }
         } else {
           // Finish Sequence
           p = 0.85;
@@ -1190,7 +1200,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           if (!autoZoomTriggeredRef.current) {
             autoZoomTriggeredRef.current = true;
             if (onSequenceComplete) onSequenceComplete();
-            setZoom(getBaseZoom()); // Avoid heavy auto-zoom to guarantee 60fps
+            
+            // Lock in the final zoom state
+            const finalZoom = getBaseZoom() + 0.35;
+            scaleMotion.set(finalZoom * MAP_SCALE);
+            setZoom(finalZoom); // Ensure React state allows user to interact starting from this zoom
           }
           if (typeof window !== 'undefined' && diagActive) stopDiagnostics();
         }
@@ -1201,11 +1215,22 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         smoothProgress += (rawP - smoothProgress) * dt * 5.0;
         p = smoothProgress;
         
+        // Seamless auto-zoom for desktop scrub
+        if (p > 0.5) {
+          const zoomT = Math.min(1.0, Math.max(0, (p - 0.5) / 0.35)); // normalized 0 to 1
+          const easeZoom = Math.sin((zoomT * Math.PI) / 2); // smooth easeOut
+          const targetZoom = getBaseZoom() + 0.35 * easeZoom;
+          scaleMotion.set(targetZoom * MAP_SCALE);
+        } else {
+          scaleMotion.set(getBaseZoom() * MAP_SCALE);
+        }
+        
         if (p >= 0.85 ) {
           sequenceStateRef.current = 'map';
           setSequenceState('map');
           if (onSequenceComplete) onSequenceComplete();
-          setZoom(getBaseZoom());
+          const finalZoom = getBaseZoom() + 0.35;
+          setZoom(finalZoom);
         }
       } else {
         // Mobile idle or preparing MUST hold p=0

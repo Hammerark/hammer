@@ -914,8 +914,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const combinedDirX = radialX * 0.45 + angleCos * 0.55;
         const combinedDirZ = radialZ * 0.45 + angleSin * 0.55;
 
-        // Moderat utadgående spredning før regn (økt hastighet utover)
-        const speedMagnitude = 65.0 + Math.abs(seedValue1) * 35.0; 
+        // Kraftig utadgående spredning for eksplosjon
+        const speedMagnitude = 180.0 + Math.abs(seedValue1) * 90.0; 
         const driftX = combinedDirX * speedMagnitude;
         const driftZ = combinedDirZ * speedMagnitude;
 
@@ -1190,7 +1190,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           if (!autoZoomTriggeredRef.current) {
             autoZoomTriggeredRef.current = true;
             if (onSequenceComplete) onSequenceComplete();
-            setZoom(getTargetZoom()); // Hand off to framer animate
+            setZoom(getBaseZoom()); // Avoid heavy auto-zoom to guarantee 60fps
           }
           if (typeof window !== 'undefined' && diagActive) stopDiagnostics();
         }
@@ -1205,7 +1205,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           sequenceStateRef.current = 'map';
           setSequenceState('map');
           if (onSequenceComplete) onSequenceComplete();
-          setZoom(getTargetZoom());
+          setZoom(getBaseZoom());
         }
       } else {
         // Mobile idle or preparing MUST hold p=0
@@ -1215,12 +1215,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
       // Calculate Map Zoom based on unified 'p'
       if (sequenceStateRef.current !== 'map') {
-        if (p >= 0.70 && p <= 0.85) {
-           const zoomP = (p - 0.70) / 0.15; // 0.0 to 1.0
-           const easeZoom = -(Math.cos(Math.PI * zoomP) - 1) / 2;
-           const currentZoom = 1.0 + easeZoom * (getTargetZoom() - 1.0);
-           scaleMotion.set(currentZoom * MAP_SCALE);
-        } else if (p < 0.70) {
+        if (p < 0.70) {
            scaleMotion.set(1.0 * MAP_SCALE);
         }
       }
@@ -1669,6 +1664,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }} 
         className="absolute inset-0 z-30 flex items-center justify-center bg-white transition-opacity duration-300 overflow-hidden select-none"
       >
+        {/* White Fade Overlays inside the map container to frame the actual map bounds */}
+        <div className="absolute inset-x-0 top-0 h-24 md:h-32 bg-gradient-to-b from-white via-white/80 to-white/0 pointer-events-none z-50" />
+        <div className="absolute inset-x-0 bottom-0 h-32 md:h-48 bg-gradient-to-t from-white via-white/80 to-white/0 pointer-events-none z-50" />
+        <div className="absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-white via-white/80 to-white/0 pointer-events-none z-50" />
+        <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-white via-white/80 to-white/0 pointer-events-none z-50" />
+
         {/* INTERMEDIATE FIXED WRAPPER for interaction and overflow clipping */}
         <div
           ref={htmlMapInteractiveWrapperRef}
@@ -1694,8 +1695,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             style={{
               cursor: "none",
               transformOrigin: "center",
-              willChange: "transform",
-              backfaceVisibility: "hidden",
               scale: scaleMotion,
               width: isMobileSize && typeof window !== "undefined" && window.innerHeight > window.innerWidth 
                 ? "calc(75dvh * (2048 / 1270))" 
@@ -1960,12 +1959,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             })}
           </motion.div>
         </div>
-
-          {/* White Fade Overlays fixed to the screen edges to provide a permanent soft vignette over the map */}
-          <div className="absolute inset-x-0 top-0 h-24 md:h-32 bg-gradient-to-b from-white via-white/80 to-white/0 pointer-events-none z-50" />
-          <div className="absolute inset-x-0 bottom-0 h-32 md:h-48 bg-gradient-to-t from-white via-white/80 to-white/0 pointer-events-none z-50" />
-          <div className="absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-white via-white/80 to-white/0 pointer-events-none z-50" />
-          <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-white via-white/80 to-white/0 pointer-events-none z-50" />
 
           {/* Sleek Minimalist Architectural Map Controls Panel */}
           <div className={`hidden absolute bottom-8 right-8 z-40 flex flex-col gap-2 items-center ${scrollProgress < 0.65 ? "pointer-events-none" : "pointer-events-auto"} ${isMobileSize && selectedMobileProject ? "hidden" : ""} select-none`}>

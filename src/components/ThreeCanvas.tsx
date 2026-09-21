@@ -1207,6 +1207,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const landingRotation = new THREE.Quaternion();
     const inverseRigRotation = new THREE.Quaternion();
     const landingEuler = new THREE.Euler();
+    const rainCameraPosition = new THREE.Vector3();
 
     const tick = () => {
       animationFrameId = requestAnimationFrame(tick);
@@ -1416,6 +1417,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         return landingRay.ray.intersectPlane(landingPlane, out);
       };
 
+      const compactRain = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 1024;
+      const rainGlyphWidth = 5.5 * 1.38;
+      const glyphDiagonal = Math.hypot(W, H);
+      const rainPixelDiagonal = rainGlyphWidth * glyphDiagonal / W;
+      const focalPixels = canvasBounds.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+
       // 15. Render particle positions
       const mesh = instancedMeshRef.current;
       if (mesh && (mesh as any).customData) {
@@ -1528,6 +1535,24 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               
               if (openingProgress < 0.2) {
                 opacityVal *= openingProgress / 0.2;
+              }
+            }
+
+            // Bound the rain in screen pixels, including perspective and map zoom.
+            // t=0 preserves the opening formation. Both decorative and project Hs
+            // settle into the compact size during the first part of their fall.
+            if (compactRain && t > 0 && finalScale > 0) {
+              rainCameraPosition.set(x, y, z)
+                .applyMatrix4(rig.matrixWorld)
+                .applyMatrix4(camera.matrixWorldInverse);
+              const depth = -rainCameraPosition.z;
+              if (depth > camera.near) {
+                const pixelScale = rainPixelDiagonal * depth
+                  / (focalPixels * glyphDiagonal * currentRigScale);
+                const shrink = THREE.MathUtils.smoothstep(t, 0, 0.18);
+                finalScale = THREE.MathUtils.lerp(finalScale, Math.min(finalScale, pixelScale), shrink);
+              } else {
+                opacityVal = 0;
               }
             }
 

@@ -400,7 +400,7 @@ export default function App() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                       transition={{ duration: 0.5, delay: 0.4 }}
-                      className="fixed bottom-12 md:bottom-16 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-none"
+                      className="fixed bottom-12 md:bottom-[10vh] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-none"
                     >
                       {isMobile && startId === null && !hasRequestedMotion ? (
                         <motion.button 

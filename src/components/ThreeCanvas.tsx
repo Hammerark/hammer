@@ -915,7 +915,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const combinedDirZ = radialZ * 0.45 + angleSin * 0.55;
 
         // Kraftig utadgående spredning for eksplosjon
-        const speedMagnitude = 180.0 + Math.abs(seedValue1) * 90.0; 
+        const speedMagnitude = 140.0 + Math.abs(seedValue1) * 70.0; // slightly slower
         const driftX = combinedDirX * speedMagnitude;
         const driftZ = combinedDirZ * speedMagnitude;
 
@@ -925,8 +925,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const triggerDuration = 0.35 + (seedValue2 * 0.5 + 0.5) * 0.12; 
 
         // Massive gravity and high pop for distinct, fast downward rain
-        const gravityConstant = -110.0 - Math.abs(seedValue2) * 50.0;
-        const initialVelocityY = 40.0 + Math.abs(seedValue3) * 20.0;
+        const gravityConstant = -90.0 - Math.abs(seedValue2) * 40.0; // slightly less gravity
+        const initialVelocityY = 35.0 + Math.abs(seedValue3) * 15.0; // slightly less pop
 
         // Spin offsets
         const rotSpeedX = seedValue1 * Math.PI * 4.5;
@@ -1400,8 +1400,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
               
               // Project particles get smaller and less visible as they land
-              finalScale = SMALL_SCALE * (1.0 - 0.7 * tSpring); // shrink down to 30% of original
-              const baseOpacity = 1.0 - 0.75 * tSpring; // fade down to 25% opacity
+              finalScale = SMALL_SCALE * (1.0 - 0.4 * tSpring); // shrink down to 60% of original
+              const baseOpacity = 1.0 - 0.3 * tSpring; // fade down to 70% opacity
               
               // Gracefully fade 3D particle out just as HTML marker fully appears
               opacityVal = p < 0.65 ? baseOpacity : Math.max(0, baseOpacity - (p - 0.65) / 0.05);
@@ -1699,8 +1699,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           width: typeof window !== "undefined" && window.innerWidth <= 767 ? "100vw" : typeof window !== "undefined" && window.innerWidth <= 1024 ? "80vw" : "90vw",
           height: typeof window !== "undefined" && window.innerWidth <= 767 ? "90dvh" : "100%",
           left: "50%",
-          top: typeof window !== "undefined" && window.innerWidth <= 767 ? "0" : "50%",
-          transform: typeof window !== "undefined" && window.innerWidth <= 767 ? "translateX(-50%)" : "translate(-50%, -50%)"
+          top: "50%",
+          transform: "translate(-50%, -50%)"
         }}
       >
         <div className="absolute inset-x-0 top-0 h-16 md:h-24 bg-gradient-to-b from-white to-transparent" />

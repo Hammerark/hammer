@@ -1400,6 +1400,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               
               // Maintain standard scale and gracefully fade 3D particle out just as HTML marker fully appears
               opacityVal = p < 0.65 ? 1.0 : Math.max(0, 1.0 - (p - 0.65) / 0.05);
+              dummyColor.copy(fgColor); // Project markers stay their original color
             } else {
               x = physX;
               y = physY;
@@ -1409,22 +1410,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               rotYVal = part.rotSpeedY * t;
               rotZVal = part.rotSpeedZ * t;
               
+              // Shrink smoothly to zero as they settle
+              finalScale = SMALL_SCALE * (1.0 - t * t);
+
+              // Fade to white background
+              const lerpVal = Math.min(1, t * 1.4);
+              dummyColor.copy(fgColor).lerp(bgColor, lerpVal);
+
               // Gently fade opacity for non-project particles
               opacityVal = Math.max(0, 1.0 - t * t * 1.3);
             }
-
-            // Shrink smoothly to zero as they settle
-            finalScale = SMALL_SCALE * (1.0 - t * t);
-
-            // Fade to white background
-            const lerpVal = Math.min(1, t * 1.4);
-            dummyColor.copy(fgColor).lerp(bgColor, lerpVal);
-
-            // Gently fade opacity
-            opacityVal = Math.max(0, 1.0 - t * t * 1.3);
-
-
-
             // Apply opening animation (reversed explosion)
             if (openingFactor > 0.001) {
               x += part.driftX * openingFactor * 2.5;
@@ -1493,7 +1488,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
 
         if (htmlMapContainerRef.current) {
-          htmlMapContainerRef.current.style.opacity = mapOpacityVal.toString();
+          const mapOpStr = String(Math.round(mapOpacityVal * 20) / 20); // 20 steps to prevent layout thrashing
+          if (htmlMapContainerRef.current.style.opacity !== mapOpStr) {
+            htmlMapContainerRef.current.style.opacity = mapOpStr;
+          }
         }
         if (htmlMapInteractiveWrapperRef.current) {
           htmlMapInteractiveWrapperRef.current.style.pointerEvents = mapOpacityVal > 0.05 ? "auto" : "none";
@@ -1689,6 +1687,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         </div>
       )}
 
+      {/* Permanent Screen Edge Gradients */}
+      <div className="absolute inset-0 z-50 pointer-events-none">
+        <div className="absolute inset-x-0 top-0 h-16 md:h-24 bg-gradient-to-b from-white to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-16 md:h-24 bg-gradient-to-t from-white to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-16 md:w-24 bg-gradient-to-r from-white to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-16 md:w-24 bg-gradient-to-l from-white to-transparent" />
+      </div>
+
       {/* Main Interactive Map Container */}
       <div 
         id="blyHBg" 
@@ -1712,12 +1718,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }} 
         className="absolute inset-0 z-30 flex items-center justify-center bg-white transition-opacity duration-300 overflow-hidden select-none"
       >
-        {/* White Fade Overlays inside the map container to frame the actual map bounds */}
-        <div className="absolute inset-x-0 top-0 h-16 md:h-24 bg-gradient-to-b from-white to-transparent pointer-events-none z-50" />
-        <div className="absolute inset-x-0 bottom-0 h-16 md:h-24 bg-gradient-to-t from-white to-transparent pointer-events-none z-50" />
-        <div className="absolute inset-y-0 left-0 w-16 md:w-24 bg-gradient-to-r from-white to-transparent pointer-events-none z-50" />
-        <div className="absolute inset-y-0 right-0 w-16 md:w-24 bg-gradient-to-l from-white to-transparent pointer-events-none z-50" />
-
         {/* INTERMEDIATE FIXED WRAPPER for interaction and overflow clipping */}
         <div
           ref={htmlMapInteractiveWrapperRef}

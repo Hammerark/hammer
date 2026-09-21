@@ -369,13 +369,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
   useEffect(() => {
     // Let tick() control the motion value during the sequence
-    if (hasRequestedMotionRef.current && scrollProgress < 0.85) return;
+    if (sequenceState !== 'map') return;
+    scaleMotion.stop();
     
-    animate(scaleMotion, zoom * MAP_SCALE, {
+    const controls = animate(scaleMotion, zoom * MAP_SCALE, {
       type: "tween",
       duration: isDragging ? 0 : (isMapInteracting ? 0.4 : 1.5),
       ease: "easeInOut"
     });
+    return () => controls.stop();
   }, [zoom, isDragging, isMapInteracting, sequenceState]);
 
   // Wheel zoom injection logic
@@ -1195,6 +1197,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     let startTime: number | null = null;
     let animationFrameId: number;
     let hasFinalizedMapState = false;
+    const landingRay = new THREE.Raycaster();
+    const landingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const landingNdc = new THREE.Vector2();
+    const landingWorld = new THREE.Vector3();
+    const landingEdge = new THREE.Vector3();
+    const landingLocal = new THREE.Vector3();
+    const inverseRig = new THREE.Matrix4();
+    const landingRotation = new THREE.Quaternion();
+    const inverseRigRotation = new THREE.Quaternion();
+    const landingEuler = new THREE.Euler();
 
     const tick = () => {
       animationFrameId = requestAnimationFrame(tick);
@@ -1385,6 +1397,25 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       rig.scale.setScalar(currentRigScale);
       rig.updateMatrixWorld(true);
 
+      // Read layout once per frame. Use the same percentage anchors as the DOM,
+      // and the current motion value (the DOM transform may be one frame behind).
+      camera.updateMatrixWorld(true);
+      inverseRig.copy(rig.matrixWorld).invert();
+      inverseRigRotation.copy(rig.quaternion).invert();
+      const canvasBounds = renderer.domElement.getBoundingClientRect();
+      const mapElement = mapContainerRef.current;
+      const mapBounds = mapElement?.getBoundingClientRect();
+      const mapPixelWidth = (mapElement?.offsetWidth || 0) * scaleMotion.get();
+      const mapPixelHeight = (mapElement?.offsetHeight || 0) * scaleMotion.get();
+      const projectToPlane = (pixelX: number, pixelY: number, out: THREE.Vector3) => {
+        landingNdc.set(
+          ((pixelX - canvasBounds.left) / canvasBounds.width) * 2 - 1,
+          1 - ((pixelY - canvasBounds.top) / canvasBounds.height) * 2
+        );
+        landingRay.setFromCamera(landingNdc, camera);
+        return landingRay.ray.intersectPlane(landingPlane, out);
+      };
+
       // 15. Render particle positions
       const mesh = instancedMeshRef.current;
       if (mesh && (mesh as any).customData) {
@@ -1427,37 +1458,44 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             let opacityVal = 1.0;
 
             if (part.isProject) {
-              const tSpring = getSpringWeight(t);
+              const tSpring = THREE.MathUtils.smoothstep(t, 0, 1);
               const proj = projectsRef.current[part.projectIndex];
               
-              // Exact Perspective Projection Math:
-              // Camera at y=15, part.targetY=1.0. Dist = 14.0.
-              // Visible height = 2 * 14.0 * tan(30deg) = 16.1658 WebGL units.
-              const mapZoomFactor = scaleMotion.get() / MAP_SCALE;
-              const positionScale = mapZoomFactor * 16.1658 / window.innerHeight;
-              const btnSize = isMobile ? 44 : 16;
-              const exactMarkerScale = (btnSize * 16.1658 / window.innerHeight) / 180.99;
-              const exactLocalScale = exactMarkerScale / currentRigScale;
+              const marker = proj && actualMarkersRef.current[proj.id];
+              let exactLocalScale = SMALL_SCALE;
+              landingLocal.set(part.targetX, part.targetY, part.targetZ);
+              if (marker && mapBounds && canvasBounds.width && canvasBounds.height) {
+                const pixelX = mapBounds.left + mapBounds.width / 2
+                  + (parseFloat(marker.style.left) / 100 - 0.5) * mapPixelWidth;
+                const pixelY = mapBounds.top + mapBounds.height / 2
+                  + (parseFloat(marker.style.top) / 100 - 0.5) * mapPixelHeight;
+                // Match the visible glyph, never the larger touch target.
+                const touch = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 1024;
+                const glyphPixels = touch ? 5.5 * 1.38 : 5.75;
+                if (projectToPlane(pixelX, pixelY, landingWorld)
+                    && projectToPlane(pixelX + glyphPixels, pixelY, landingEdge)) {
+                  exactLocalScale = landingWorld.distanceTo(landingEdge) / (W * currentRigScale);
+                  landingLocal.copy(landingWorld).applyMatrix4(inverseRig);
+                }
+              }
+              x = THREE.MathUtils.lerp(physX, landingLocal.x, tSpring);
+              y = THREE.MathUtils.lerp(physY, landingLocal.y, tSpring);
+              z = THREE.MathUtils.lerp(physZ, landingLocal.z, tSpring);
 
-              const exactTargetX = part.targetX * positionScale / currentRigScale;
-              const exactTargetZ = part.targetZ * positionScale / currentRigScale;
-              
-              // Transition gracefully from the physical gravitational path to the exact target coordinate
-              x = THREE.MathUtils.lerp(physX, exactTargetX, tSpring);
-              y = THREE.MathUtils.lerp(physY, part.targetY, tSpring);
-              z = THREE.MathUtils.lerp(physZ, exactTargetZ, tSpring);
-              
               const targetRotYVal = proj ? THREE.MathUtils.degToRad(getProjectRotation(proj.id)) : 0;
-              rotXVal = THREE.MathUtils.lerp(part.rotSpeedX * t, -Math.PI / 2, tSpring);
-              rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, targetRotYVal, tSpring);
-              rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
-              
+              landingEuler.set(-Math.PI / 2, 0, -targetRotYVal);
+              landingRotation.setFromEuler(landingEuler).premultiply(inverseRigRotation);
+              landingEuler.setFromQuaternion(landingRotation);
+              rotXVal = THREE.MathUtils.lerp(part.rotSpeedX * t, landingEuler.x, tSpring);
+              rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, landingEuler.y, tSpring);
+              rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, landingEuler.z, tSpring);
+
               // Project particles converge to exactly the pixel size of the DOM marker
               finalScale = THREE.MathUtils.lerp(SMALL_SCALE, exactLocalScale, tSpring);
               const baseOpacity = 1.0 - 0.3 * tSpring; // fade down to 70% opacity
               
               // Gracefully fade 3D particle out just as HTML marker fully appears
-              opacityVal = p < 0.65 ? baseOpacity : Math.max(0, baseOpacity - (p - 0.65) / 0.05);
+              opacityVal = baseOpacity * (1 - THREE.MathUtils.smoothstep(t, 0.92, 1));
               dummyColor.copy(fgColor); // Project markers stay their original color
             } else {
               x = physX;
@@ -2015,7 +2053,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                           <motion.svg
                             viewBox="0 0 180.99 123.93"
                             style={{ width: isDragModeEnabled ? svgSizeDragMotion : svgSizeNormalMotion }}
-                            className={`transition-all duration-300 opacity-100 select-none h-auto ${
+                            className={`transition-opacity duration-300 opacity-100 select-none h-auto ${
                               isDragModeEnabled
                                 ? `fill-amber-500 hover:fill-amber-600 drop-shadow-sm`
                                 : `fill-neutral-900 drop-shadow-sm`
@@ -2061,6 +2099,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                             </div>
                             {/* Triangle pointer */}
                             <div className="absolute -bottom-[4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-neutral-100 rotate-45 z-[-1]" />
+                            </div>
                           </motion.div>
                         )}
                       </div>

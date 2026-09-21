@@ -1983,14 +1983,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                   ref={(el) => {
                     if (el) actualMarkersRef.current[proj.id] = el;
                   }}
-                  className={`absolute ${isActive ? 'z-[60]' : 'z-40 hover:z-[60]'} pointer-events-none project-marker ${opacity} transition-opacity duration-300`}
+                  className={`absolute ${isActive ? 'z-[60]' : 'z-40 hover:z-[60]'} pointer-events-none project-marker ${opacity} ${sequenceState === 'map' ? 'transition-opacity duration-300' : ''}`}
                   style={{
                     position: "absolute",
                     left: `${coord.xPercent}%`,
                     top: `${coord.yPercent}%`,
                     width: "0px",
                     height: "0px",
-                    opacity: 0 // Default to invisible until p >= 0.70 in tick()
+                    opacity: sequenceState === 'map' ? undefined : 0 // Default to invisible until p >= 0.70 in tick()
                   }}
                 >
                   <motion.div

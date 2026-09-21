@@ -1522,8 +1522,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               finalScale = THREE.MathUtils.lerp(SMALL_SCALE, exactLocalScale, tSpring);
               const baseOpacity = 1.0 - 0.3 * tSpring; // fade down to 70% opacity
               
-              // Gracefully fade 3D particle out just as HTML marker fully appears
-              opacityVal = baseOpacity * (1 - THREE.MathUtils.smoothstep(t, 0.92, 1));
+              // Gracefully fade 3D particle out globally against 'p' to perfectly crossfade with DOM markers fading in
+              const fadeOut = 1 - THREE.MathUtils.smoothstep(p, 0.65, 0.75);
+              opacityVal = baseOpacity * fadeOut;
               dummyColor.copy(fgColor); // Project markers stay their original color
             } else {
               x = physX;

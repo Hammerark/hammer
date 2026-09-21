@@ -11,6 +11,8 @@ import { triggerHaptic } from "../utils";
 
 // The scale of the map (1.0 means original unscaled map)
 const MAP_SCALE = 1.0;
+const DESKTOP_MARKER_WIDTH = 5.75 * 1.15;
+const TOUCH_RAIN_WIDTH = 3.8;
 
 // Underdamped spring-damping physics calculation for realistic settling weight
 const getSpringWeight = (t: number): number => {
@@ -348,7 +350,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const btnSizeMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 44 * inv : 16 * inv);
   const btnOffsetMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? -22 * inv : -8 * inv);
   
-  const svgSizeNormalMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 5.5 * inv : 5.75 * inv);
+  const svgSizeNormalMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 5.5 * inv : DESKTOP_MARKER_WIDTH * inv);
   const svgSizeDragMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 6.3 * inv : 6.3 * inv);
 
   const tooltipScaleMotion = useTransform(scaleMotion, (s) => {
@@ -1418,7 +1420,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       };
 
       const compactRain = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 1024;
-      const rainGlyphWidth = 5.5 * 1.38;
+      const rainGlyphWidth = TOUCH_RAIN_WIDTH;
       const glyphDiagonal = Math.hypot(W, H);
       const rainPixelDiagonal = rainGlyphWidth * glyphDiagonal / W;
       const focalPixels = canvasBounds.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
@@ -1478,7 +1480,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                   + (parseFloat(marker.style.top) / 100 - 0.5) * mapPixelHeight;
                 // Match the visible glyph, never the larger touch target.
                 const touch = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 1024;
-                const glyphPixels = touch ? 5.5 * 1.38 : 5.75;
+                const glyphPixels = touch ? 5.5 * 1.38 : DESKTOP_MARKER_WIDTH;
                 if (projectToPlane(pixelX, pixelY, landingWorld)
                     && projectToPlane(pixelX + glyphPixels, pixelY, landingEdge)) {
                   exactLocalScale = landingWorld.distanceTo(landingEdge) / (W * currentRigScale);
@@ -1539,17 +1541,21 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             }
 
             // Bound the rain in screen pixels, including perspective and map zoom.
-            // t=0 preserves the opening formation. Both decorative and project Hs
-            // settle into the compact size during the first part of their fall.
-            if (compactRain && t > 0 && finalScale > 0) {
+            // Shrink during the explosion, before any H begins its fall.
+            // This preserves the idle formation without leaving oversized early raindrops.
+            if (compactRain && p > 0.05 && finalScale > 0) {
               rainCameraPosition.set(x, y, z)
                 .applyMatrix4(rig.matrixWorld)
                 .applyMatrix4(camera.matrixWorldInverse);
               const depth = -rainCameraPosition.z;
               if (depth > camera.near) {
-                const pixelScale = rainPixelDiagonal * depth
-                  / (focalPixels * glyphDiagonal * currentRigScale);
-                const shrink = THREE.MathUtils.smoothstep(t, 0, 0.18);
+                // A sphere enclosing the glyph bounds its projected extent even
+                // off-axis or tilted; center-depth alone underestimates those cases.
+                const offAxis = Math.max(Math.abs(rainCameraPosition.x), Math.abs(rainCameraPosition.y));
+                const radius = rainPixelDiagonal * depth * depth
+                  / (2 * focalPixels * (depth + offAxis) + rainPixelDiagonal * depth);
+                const pixelScale = 2 * radius / (glyphDiagonal * currentRigScale);
+                const shrink = THREE.MathUtils.smoothstep(p, 0.05, 0.15);
                 finalScale = THREE.MathUtils.lerp(finalScale, Math.min(finalScale, pixelScale), shrink);
               } else {
                 opacityVal = 0;

@@ -400,16 +400,16 @@ export default function App() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                       transition={{ duration: 0.5, delay: 0.4 }}
-                      className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-none"
+                      className="fixed bottom-12 md:bottom-16 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-none"
                     >
-                      {isMobile && startId === null ? (
+                      {isMobile && startId === null && !hasRequestedMotion ? (
                         <motion.button 
                           key="prompt-explore"
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 5 }}
                           transition={{ delay: 1, duration: 1 }}
-                          className="flex flex-col items-center text-center animate-pulse cursor-pointer pointer-events-auto"
+                          className="flex flex-col items-center text-center cursor-pointer pointer-events-auto"
                           onClick={() => {
                             triggerHaptic();
                             if (!hasRequestedMotion) {

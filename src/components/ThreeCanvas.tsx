@@ -347,11 +347,27 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     return 1 / (currentZoom * mScale);
   });
 
-  const btnSizeMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 44 * inv : 16 * inv);
-  const btnOffsetMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? -22 * inv : -8 * inv);
+  const btnSizeMotion = useTransform(scaleMotion, (s) => {
+    const currentZoom = s / MAP_SCALE;
+    let mScale;
+    if (isTouchDeviceGlobal) {
+      const zoomBoost = 1.0 + (Math.max(0, currentZoom - 1.4) / 6.6) * 0.40;
+      mScale = (0.6 / currentZoom) * (0.75 + Math.max(0, currentZoom - 3.15) / 14.85 * 0.25) * zoomBoost;
+      const inv = 1 / (currentZoom * mScale);
+      const t = Math.max(0, Math.min(1, (currentZoom - 1.4) / 2.6));
+      const visualSize = 20 + t * 24; // Smoothly scale from 20px (zoomed out) to 44px (zoomed in)
+      return visualSize * inv;
+    } else {
+      mScale = (0.4 + 0.6 / currentZoom) * 0.8;
+      const inv = 1 / (currentZoom * mScale);
+      return 16 * inv;
+    }
+  });
   
-  const svgSizeNormalMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 5.5 * inv : DESKTOP_MARKER_WIDTH * inv);
-  const svgSizeDragMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 6.3 * inv : 6.3 * inv);
+  const btnOffsetMotion = useTransform(btnSizeMotion, size => -size / 2);
+  
+  const svgSizeNormalMotion = useTransform(btnSizeMotion, size => isTouchDeviceGlobal ? size * (5.5 / 44) : size * (DESKTOP_MARKER_WIDTH / 16));
+  const svgSizeDragMotion = useTransform(btnSizeMotion, size => isTouchDeviceGlobal ? size * (6.3 / 44) : size * (6.3 / 16));
 
   const tooltipScaleMotion = useTransform(scaleMotion, (s) => {
     const currentZoom = s / MAP_SCALE;
@@ -359,6 +375,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     if (isTouchDeviceGlobal) {
       const zoomBoost = 1.0 + (Math.max(0, currentZoom - 1.4) / 6.6) * 0.40;
       mScale = (0.6 / currentZoom) * (0.75 + Math.max(0, currentZoom - 3.15) / 14.85 * 0.25) * zoomBoost;
+      // Tooltips on mobile are only shown when selected, which originally had a 2.346x multiplier.
+      // We apply it here so the tooltip scales down correctly.
+      mScale *= 2.346;
     } else {
       mScale = (0.4 + 0.6 / currentZoom) * 0.8;
     }
@@ -1235,7 +1254,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       // START STATE MACHINE LOGIC
       if (sequenceStateRef.current === 'playing' && sequenceStartTsRef.current !== null) {
         const seqElapsed = currentTime - sequenceStartTsRef.current;
-        const TOTAL_DURATION = 3500;
+        const TOTAL_DURATION = 5000;
         
         if (seqElapsed < TOTAL_DURATION) {
           const t = seqElapsed / TOTAL_DURATION;

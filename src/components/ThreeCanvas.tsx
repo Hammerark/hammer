@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { motion, AnimatePresence, useMotionValue, animate } from "motion/react";
+import { motion, AnimatePresence, useMotionValue, animate, useTransform, useSpring } from "motion/react";
 import { RotateCcw, Lock, Unlock, Copy, Check, ArrowRight, Smartphone } from "lucide-react";
 import { Project } from "../data/projects";
 import osloNolliMap from "../assets/images/StorOslo.png";
@@ -321,9 +321,41 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
   const scaleMotion = useMotionValue(getBaseZoom() * MAP_SCALE);
 
+  const isTouchDeviceGlobal = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 1024);
+
+  const globalMarkerZoomScale = useTransform(scaleMotion, (s) => {
+    const currentZoom = s / MAP_SCALE;
+    if (isTouchDeviceGlobal) {
+      const zoomBoost = 1.0 + (Math.max(0, currentZoom - 1.4) / 6.6) * 0.40;
+      return (0.6 / currentZoom) * (0.75 + Math.max(0, currentZoom - 3.15) / 14.85 * 0.25) * zoomBoost;
+    } else {
+      return (0.4 + 0.6 / currentZoom) * 0.8;
+    }
+  });
+
+  const globalInverseScale = useTransform([scaleMotion, globalMarkerZoomScale], ([latestMapScale, mScale]: any) => {
+    const currentZoom = latestMapScale / MAP_SCALE;
+    return 1 / (currentZoom * mScale);
+  });
+
+  const btnSizeMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 44 * inv : 16 * inv);
+  const btnOffsetMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? -22 * inv : -8 * inv);
+  
+  const svgSizeNormalMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 5.5 * inv : 5.75 * inv);
+  const svgSizeDragMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 6.3 * inv : 6.3 * inv);
+
+  const tooltipScaleMotion = useTransform([scaleMotion, globalMarkerZoomScale], ([latestMapScale, mScale]: any) => {
+    const currentZoom = latestMapScale / MAP_SCALE;
+    return 1 / (currentZoom * mScale);
+  });
+  
+  const tooltipMarginMotion = useTransform(tooltipScaleMotion, tooltipScale => {
+    return `${16 * tooltipScale}px`;
+  });
+
   useEffect(() => {
     // Let tick() control the motion value during the sequence
-    if (sequenceState !== 'map') return;
+    if (hasRequestedMotionRef.current && scrollProgress < 0.85) return;
     
     animate(scaleMotion, zoom * MAP_SCALE, {
       type: "tween",
@@ -1202,7 +1234,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             if (onSequenceComplete) onSequenceComplete();
             
             // Lock in the final zoom state
-            const finalZoom = getBaseZoom() + 0.65;
+            const finalZoom = getBaseZoom() + 0.85;
             scaleMotion.set(finalZoom * MAP_SCALE);
             setZoom(finalZoom); // Ensure React state allows user to interact starting from this zoom
           }
@@ -1229,7 +1261,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           sequenceStateRef.current = 'map';
           setSequenceState('map');
           if (onSequenceComplete) onSequenceComplete();
-          const finalZoom = getBaseZoom() + 0.65;
+          const finalZoom = getBaseZoom() + 0.85;
           setZoom(finalZoom);
         }
       } else {
@@ -1389,18 +1421,30 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const tSpring = getSpringWeight(t);
               const proj = projectsRef.current[part.projectIndex];
               
+              // Exact Perspective Projection Math:
+              // Camera at y=15, part.targetY=1.0. Dist = 14.0.
+              // Visible height = 2 * 14.0 * tan(30deg) = 16.1658 WebGL units.
+              const mapZoomFactor = scaleMotion.get() / MAP_SCALE;
+              const positionScale = mapZoomFactor * 16.1658 / window.innerHeight;
+              const btnSize = isMobile ? 44 : 16;
+              const exactMarkerScale = (btnSize * 16.1658 / window.innerHeight) / 180.99;
+              const exactLocalScale = exactMarkerScale / currentRigScale;
+
+              const exactTargetX = part.targetX * positionScale / currentRigScale;
+              const exactTargetZ = part.targetZ * positionScale / currentRigScale;
+              
               // Transition gracefully from the physical gravitational path to the exact target coordinate
-              x = THREE.MathUtils.lerp(physX, part.targetX, tSpring);
+              x = THREE.MathUtils.lerp(physX, exactTargetX, tSpring);
               y = THREE.MathUtils.lerp(physY, part.targetY, tSpring);
-              z = THREE.MathUtils.lerp(physZ, part.targetZ, tSpring);
+              z = THREE.MathUtils.lerp(physZ, exactTargetZ, tSpring);
               
               const targetRotYVal = proj ? THREE.MathUtils.degToRad(getProjectRotation(proj.id)) : 0;
               rotXVal = THREE.MathUtils.lerp(part.rotSpeedX * t, -Math.PI / 2, tSpring);
               rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, targetRotYVal, tSpring);
               rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
               
-              // Project particles get smaller and less visible as they land
-              finalScale = SMALL_SCALE * (1.0 - 0.4 * tSpring); // shrink down to 60% of original
+              // Project particles converge to exactly the pixel size of the DOM marker
+              finalScale = THREE.MathUtils.lerp(SMALL_SCALE, exactLocalScale, tSpring);
               const baseOpacity = 1.0 - 0.3 * tSpring; // fade down to 70% opacity
               
               // Gracefully fade 3D particle out just as HTML marker fully appears
@@ -1834,20 +1878,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const hasMobileSelection = !!selectedMobileProject;
               const opacity = isTouchDevice && hasMobileSelection && !isSelectedMob ? "opacity-20" : "opacity-100";
               
-              // Original mobile scale logic, but with a 40% boost at max zoom to prevent them from becoming too small
-              const originalMobileScale = (isSelectedMob ? 2.346 : 1.38) * (0.6 / displayZoom) * (0.75 + Math.max(0, displayZoom - 3.15) / (18.0 - 3.15) * 0.25);
-              const zoomBoost = 1.0 + (Math.max(0, displayZoom - 1.4) / 6.6) * 0.40; // 40% less shrinking at max zoom (8.0)
-              
-              const markerScale = isTouchDevice ? 
-                originalMobileScale * zoomBoost :
-                (0.4 + 0.6 / displayZoom) * 0.8;
-                
-              // Perfectly invert the map zoom and marker scale so the tooltip is exactly its base CSS size on screen.
-              const tooltipScale = 1 / (displayZoom * markerScale);
-              const inverseScale = isTouchDevice ? tooltipScale : 1;
-              const btnSize = isTouchDevice ? 44 * inverseScale : 16;
-              const btnOffset = isTouchDevice ? -22 * inverseScale : -8;
-              const svgSize = isTouchDevice ? (isDragModeEnabled ? 6.3 * inverseScale : 5.5 * inverseScale) : (isDragModeEnabled ? 6.3 : 5.75);
+              const selectionScale = isTouchDevice ? (isSelectedMob ? 2.346 : 1.38) : 1.0;
 
               return (
                 <div
@@ -1869,26 +1900,35 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                     style={{
                       width: "0px",
                       height: "0px",
-                      position: "relative"
+                      position: "relative",
+                      scale: globalMarkerZoomScale
                     }}
-                    animate={{ scale: markerScale }}
-                    transition={
-                      isDragging 
-                        ? { type: "tween", duration: 0 } 
-                        : { type: "tween", duration: 0.3, ease: "easeOut" }
-                    }
                   >
-                    <button
-                      id={`html-marker-${proj.id}`}
-                      aria-label={`Prosjekt: ${proj.name}, ${proj.location}`}
-                      aria-expanded={isActive}
-                      style={{ 
-                        WebkitTapHighlightColor: 'transparent',
-                        width: `${btnSize}px`,
-                        height: `${btnSize}px`,
-                        left: `${btnOffset}px`,
-                        top: `${btnOffset}px`
+                    <motion.div
+                      animate={{ scale: selectionScale }}
+                      transition={
+                        isDragging 
+                          ? { type: "tween", duration: 0 } 
+                          : { type: "spring", stiffness: 300, damping: 25 }
+                      }
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        top: 0
                       }}
+                    >
+                      <motion.button
+                        id={`html-marker-${proj.id}`}
+                        aria-label={`Prosjekt: ${proj.name}, ${proj.location}`}
+                        aria-expanded={isActive}
+                        style={{ 
+                          WebkitTapHighlightColor: 'transparent',
+                          width: btnSizeMotion,
+                          height: btnSizeMotion,
+                          left: btnOffsetMotion,
+                          top: btnOffsetMotion,
+                          position: "absolute"
+                        }}
                       onClick={(e) => {
                         triggerHaptic();
                         if (isDragModeEnabled) {
@@ -1963,9 +2003,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                           }}
                           className="transition-all duration-300 pointer-events-none flex items-center justify-center"
                         >
-                          <svg
+                          <motion.svg
                             viewBox="0 0 180.99 123.93"
-                            style={{ width: `${svgSize}px` }}
+                            style={{ width: isDragModeEnabled ? svgSizeDragMotion : svgSizeNormalMotion }}
                             className={`transition-all duration-300 opacity-100 select-none h-auto ${
                               isDragModeEnabled
                                 ? `fill-amber-500 hover:fill-amber-600 drop-shadow-sm`
@@ -1973,17 +2013,18 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                             }`}
                           >
                             <path d="M 36.89 0 L 0 0 L 0 123.93 L 36.89 123.93 L 36.89 79.23 L 144.10 79.23 L 144.10 123.93 L 180.99 123.93 L 180.99 0 L 144.10 0 L 144.10 47.79 L 36.89 47.79 Z" />
-                          </svg>
+                          </motion.svg>
                           <span className="sr-only">{proj.name}</span>
                         </span>
 
                         {/* Popover visual tooltip text */}
                         {!isDragModeEnabled && (
-                          <div
+                          <motion.div
                             style={{ 
-                              transform: `translateX(-50%) scale(${tooltipScale})`,
+                              x: "-50%",
+                              scale: tooltipScaleMotion,
                               transformOrigin: "bottom center",
-                              marginBottom: `${16 / (displayZoom * markerScale)}px`
+                              marginBottom: tooltipMarginMotion
                             }}
                             className={`flex flex-col w-48 absolute bottom-full left-1/2 pointer-events-none z-50 ${isTouchDevice && selectedMobileProject?.id !== proj.id ? 'hidden' : ''}`}
                           >
@@ -2011,13 +2052,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                             </div>
                             {/* Triangle pointer */}
                             <div className="absolute -bottom-[4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-neutral-100 rotate-45 z-[-1]" />
-                          </div>
-                        </div>
-                      )}
+                          </motion.div>
+                        )}
                       </div>
-                    </button>
+                    </motion.button>
                   </motion.div>
-                </div>
+                </motion.div>
+              </div>
               );
             })}
           </motion.div>

@@ -185,7 +185,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const scrollRef = useRef(scrollProgress);
 
   const getBaseZoom = () => 1.0;
-  const getTargetZoom = () => 1.40 * 1.50; // Increased by 50%
+  const getTargetZoom = () => 1.40 * 1.50 * 1.30; // Increased by 30% further
   const getMaxZoom = () => typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 767) ? 8.0 : 6.0;
 
   // Zoom & Pan states for the 2D HTML Map Layer
@@ -925,8 +925,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const triggerDuration = 0.35 + (seedValue2 * 0.5 + 0.5) * 0.12; 
 
         // Massive gravity and high pop for distinct, fast downward rain
-        const gravityConstant = -80.0 - Math.abs(seedValue2) * 40.0;
-        const initialVelocityY = 25.0 + Math.abs(seedValue3) * 15.0;
+        const gravityConstant = -110.0 - Math.abs(seedValue2) * 50.0;
+        const initialVelocityY = 40.0 + Math.abs(seedValue3) * 20.0;
 
         // Spin offsets
         const rotSpeedX = seedValue1 * Math.PI * 4.5;
@@ -1185,7 +1185,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           if (t > 0.5) {
             const zoomT = (t - 0.5) / 0.5; // normalized 0 to 1
             const easeZoom = Math.sin((zoomT * Math.PI) / 2); // smooth easeOut
-            const targetZoom = getBaseZoom() + 0.65 * easeZoom;
+            const targetZoom = getBaseZoom() + 0.85 * easeZoom; // Zoom in 30% further
             scaleMotion.set(targetZoom * MAP_SCALE);
           } else {
             scaleMotion.set(getBaseZoom() * MAP_SCALE);
@@ -1219,7 +1219,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (p > 0.5) {
           const zoomT = Math.min(1.0, Math.max(0, (p - 0.5) / 0.35)); // normalized 0 to 1
           const easeZoom = Math.sin((zoomT * Math.PI) / 2); // smooth easeOut
-          const targetZoom = getBaseZoom() + 0.65 * easeZoom;
+          const targetZoom = getBaseZoom() + 0.85 * easeZoom; // Zoom in 30% further
           scaleMotion.set(targetZoom * MAP_SCALE);
         } else {
           scaleMotion.set(getBaseZoom() * MAP_SCALE);
@@ -1367,10 +1367,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             const initialVelocityX = part.driftX;
             const initialVelocityZ = part.driftZ;
 
-            // Trajectory integration (s = v0 * t + 0.5 * a * t^2)
-            const physX = part.initialX + initialVelocityX * t;
+            // Trajectory integration with realistic horizontal air drag (slows sideways movement quickly)
+            const dragT = 1.0 - Math.pow(1.0 - t, 2.5);
+            const physX = part.initialX + initialVelocityX * dragT * 1.35;
             const physY = part.initialY + initialVelocityY * t + 0.5 * gravityConstant * t * t;
-            const physZ = part.initialZ + initialVelocityZ * t;
+            const physZ = part.initialZ + initialVelocityZ * dragT * 1.35;
 
             let x = part.initialX;
             let y = part.initialY;
@@ -1380,8 +1381,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             let rotYVal = 0;
             let rotZVal = 0;
 
-            // All particles use the same consistent scale throughout the animation
-            let finalScale = SMALL_SCALE;
+            // All particles shrink slightly during the rain to look like smaller raindrops
+            let finalScale = SMALL_SCALE * (1.0 - 0.4 * t);
             let opacityVal = 1.0;
 
             if (part.isProject) {
@@ -1398,8 +1399,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               rotYVal = THREE.MathUtils.lerp(part.rotSpeedY * t, targetRotYVal, tSpring);
               rotZVal = THREE.MathUtils.lerp(part.rotSpeedZ * t, 0, tSpring);
               
-              // Maintain standard scale and gracefully fade 3D particle out just as HTML marker fully appears
-              opacityVal = p < 0.65 ? 1.0 : Math.max(0, 1.0 - (p - 0.65) / 0.05);
+              // Project particles get smaller and less visible as they land
+              finalScale = SMALL_SCALE * (1.0 - 0.7 * tSpring); // shrink down to 30% of original
+              const baseOpacity = 1.0 - 0.75 * tSpring; // fade down to 25% opacity
+              
+              // Gracefully fade 3D particle out just as HTML marker fully appears
+              opacityVal = p < 0.65 ? baseOpacity : Math.max(0, baseOpacity - (p - 0.65) / 0.05);
               dummyColor.copy(fgColor); // Project markers stay their original color
             } else {
               x = physX;
@@ -1411,14 +1416,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               rotZVal = part.rotSpeedZ * t;
               
               // Shrink smoothly to zero as they settle
-              finalScale = SMALL_SCALE * (1.0 - t * t);
+              finalScale = SMALL_SCALE * (1.0 - 0.4 * t - 0.6 * t * t);
 
               // Fade to white background
               const lerpVal = Math.min(1, t * 1.4);
               dummyColor.copy(fgColor).lerp(bgColor, lerpVal);
 
               // Gently fade opacity for non-project particles
-              opacityVal = Math.max(0, 1.0 - t * t * 1.3);
+              opacityVal = Math.max(0, 1.0 - t * t * 1.4);
             }
             // Apply opening animation (reversed explosion)
             if (openingFactor > 0.001) {
@@ -1688,7 +1693,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       )}
 
       {/* Permanent Screen Edge Gradients */}
-      <div className="absolute inset-0 z-50 pointer-events-none">
+      <div 
+        className="absolute z-50 pointer-events-none flex items-center justify-center overflow-hidden"
+        style={{
+          width: typeof window !== "undefined" && window.innerWidth <= 767 ? "100vw" : typeof window !== "undefined" && window.innerWidth <= 1024 ? "80vw" : "90vw",
+          height: typeof window !== "undefined" && window.innerWidth <= 767 ? "90dvh" : "100%",
+          left: "50%",
+          top: typeof window !== "undefined" && window.innerWidth <= 767 ? "0" : "50%",
+          transform: typeof window !== "undefined" && window.innerWidth <= 767 ? "translateX(-50%)" : "translate(-50%, -50%)"
+        }}
+      >
         <div className="absolute inset-x-0 top-0 h-16 md:h-24 bg-gradient-to-b from-white to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-16 md:h-24 bg-gradient-to-t from-white to-transparent" />
         <div className="absolute inset-y-0 left-0 w-16 md:w-24 bg-gradient-to-r from-white to-transparent" />
@@ -1725,8 +1739,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           style={{
             pointerEvents: "none",
             touchAction: "none", // Traps touch for map panning, leaving white margins for page scrolling
-            width: isMobileSize ? "100vw" : "90vw",
-            maxHeight: isMobileSize ? "90dvh" : "none",
+            width: typeof window !== "undefined" && window.innerWidth <= 767 ? "100vw" : typeof window !== "undefined" && window.innerWidth <= 1024 ? "80vw" : "90vw",
+            maxHeight: typeof window !== "undefined" && window.innerWidth <= 767 ? "90dvh" : "none",
+            marginTop: typeof window !== "undefined" && window.innerWidth <= 767 ? "0" : "0" // Align to top on mobile for full bleed
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}

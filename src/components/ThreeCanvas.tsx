@@ -333,8 +333,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     }
   });
 
-  const globalInverseScale = useTransform([scaleMotion, globalMarkerZoomScale], ([latestMapScale, mScale]: any) => {
-    const currentZoom = latestMapScale / MAP_SCALE;
+  const globalInverseScale = useTransform(scaleMotion, (s) => {
+    const currentZoom = s / MAP_SCALE;
+    let mScale;
+    if (isTouchDeviceGlobal) {
+      const zoomBoost = 1.0 + (Math.max(0, currentZoom - 1.4) / 6.6) * 0.40;
+      mScale = (0.6 / currentZoom) * (0.75 + Math.max(0, currentZoom - 3.15) / 14.85 * 0.25) * zoomBoost;
+    } else {
+      mScale = (0.4 + 0.6 / currentZoom) * 0.8;
+    }
     return 1 / (currentZoom * mScale);
   });
 
@@ -344,8 +351,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const svgSizeNormalMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 5.5 * inv : 5.75 * inv);
   const svgSizeDragMotion = useTransform(globalInverseScale, inv => isTouchDeviceGlobal ? 6.3 * inv : 6.3 * inv);
 
-  const tooltipScaleMotion = useTransform([scaleMotion, globalMarkerZoomScale], ([latestMapScale, mScale]: any) => {
-    const currentZoom = latestMapScale / MAP_SCALE;
+  const tooltipScaleMotion = useTransform(scaleMotion, (s) => {
+    const currentZoom = s / MAP_SCALE;
+    let mScale;
+    if (isTouchDeviceGlobal) {
+      const zoomBoost = 1.0 + (Math.max(0, currentZoom - 1.4) / 6.6) * 0.40;
+      mScale = (0.6 / currentZoom) * (0.75 + Math.max(0, currentZoom - 3.15) / 14.85 * 0.25) * zoomBoost;
+    } else {
+      mScale = (0.4 + 0.6 / currentZoom) * 0.8;
+    }
     return 1 / (currentZoom * mScale);
   });
   
@@ -1270,12 +1284,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         smoothProgress = 0;
       }
 
-      // Calculate Map Zoom based on unified 'p'
-      if (sequenceStateRef.current !== 'map') {
-        if (p < 0.70) {
-           scaleMotion.set(1.0 * MAP_SCALE);
-        }
-      }
+
 
       // CULLING OPTIMIZATION: Halt WebGL rendering when map is stationary
       let shouldRenderWebGL = true;

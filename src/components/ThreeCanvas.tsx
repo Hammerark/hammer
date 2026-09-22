@@ -360,7 +360,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     } else {
       mScale = (0.4 + 0.6 / currentZoom) * 0.8;
       const inv = 1 / (currentZoom * mScale);
-      return 16 * inv;
+      
+      // Smoothly scale desktop marker size by +10% when zooming in
+      // Base zoom ~1.0, max zoom ~6.0.
+      const zoomFactor = Math.max(0, Math.min(1, (currentZoom - 1.0) / 5.0));
+      const visualSize = 16 * (1.0 + zoomFactor * 0.10);
+      
+      return visualSize * inv;
     }
   });
   

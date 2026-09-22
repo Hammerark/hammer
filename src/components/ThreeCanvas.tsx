@@ -406,6 +406,52 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     zoomRef.current = zoom;
   }, [zoom]);
 
+  // Smooth Mouse Wheel Zooming
+  useEffect(() => {
+    const el = htmlMapInteractiveWrapperRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (sequenceStateRef.current !== 'map') return;
+      if (isDragModeEnabled) return;
+
+      const isScrollingDown = e.deltaY > 0;
+      const currentZoom = zoomRef.current;
+      const isAtBaseZoom = currentZoom <= getBaseZoom() + 0.05;
+
+      // If user scrolls down while fully zoomed out, release scroll to the page!
+      if (isScrollingDown && isAtBaseZoom) {
+        setIsMapInteracting(false);
+        return; 
+      }
+
+      // Otherwise, intercept the scroll event to zoom the map
+      e.preventDefault();
+      e.stopPropagation();
+      setIsMapInteracting(true);
+
+      const zoomDelta = e.deltaY * -0.005; // 0.005 is a comfortable zoom speed
+      const newZoom = Math.max(getBaseZoom(), Math.min(8.0, currentZoom + zoomDelta));
+      if (newZoom === currentZoom) return;
+
+      const rect = el.getBoundingClientRect();
+      const cursorX = e.clientX - rect.left - rect.width / 2;
+      const cursorY = e.clientY - rect.top - rect.height / 2;
+      const zoomRatio = newZoom / currentZoom;
+
+      setPan(prevPan => {
+        const newPanX = cursorX - (cursorX - prevPan.x) * zoomRatio;
+        const newPanY = cursorY - (cursorY - prevPan.y) * zoomRatio;
+        return { x: newPanX, y: newPanY };
+      }, newZoom);
+      
+      setZoom(newZoom);
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [isDragModeEnabled]);
+
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       // Pinch-to-zoom on trackpad when map is visible

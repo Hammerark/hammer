@@ -62,3 +62,12 @@ button:focus, a:focus {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Sort, rund musepeker – 8 px */
+@media (hover: hover) and (pointer: fine) {
+  html,
+  body,
+  body * {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='4' fill='black'/%3E%3C/svg%3E") 8 8, auto !important;
+  }
+}

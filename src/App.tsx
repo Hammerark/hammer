@@ -423,9 +423,10 @@ export default function App() {
                             handleHClick();
                           }}
                         >
-                          <span className="text-[10px] tracking-[0.3em] uppercase font-medium text-neutral-900 mb-1">
-                            Trykk for å utforske
+                          <span className="text-[10px] uppercase tracking-widest text-neutral-900 mb-2 font-medium">
+                            Skroll ned
                           </span>
+                          <ChevronDown className="w-5 h-5 animate-bounce text-neutral-900" />
                         </motion.button>
                       ) : (
                         <motion.div key="prompt-scroll" className="flex flex-col items-center">
